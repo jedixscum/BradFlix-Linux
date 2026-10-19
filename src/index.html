@@ -1,0 +1,2460 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BradFlix</title>
+<style>
+  :root {
+    --bg: #0d0f13;
+    --panel: #171a21;
+    --panel-hi: #222733;
+    --line: #2a303c;
+    --text: #eef0f4;
+    --muted: #98a0b0;
+    --accent: #ff4d5e;
+    --accent-ink: #1a0508;
+    --bad: #ff8b8b;
+    --good: #7fdcb0;
+    --radius: 12px;
+    --side: 224px;
+  }
+  body[data-layout="rail"] { --side: 78px; }
+  body[data-layout="top"] { --side: 0px; }
+  body[data-cards="square"] { --radius: 3px; }
+
+  * { box-sizing: border-box; }
+  html { background: var(--bg); }
+  body {
+    margin: 0; color: var(--text); background: var(--bg);
+    font: 16px/1.5 "Noto Sans", "Cantarell", system-ui, sans-serif;
+  }
+  a { color: inherit; }
+  button, input, select, textarea { font: inherit; color: inherit; }
+  button { cursor: pointer; }
+  :focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+  ::-webkit-scrollbar { height: 8px; width: 10px; }
+  ::-webkit-scrollbar-thumb { background: var(--line); border-radius: 8px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+
+  /* ---------- sidebar ---------- */
+  #side {
+    position: fixed; left: 0; top: 0; bottom: 0; width: var(--side); z-index: 10;
+    display: flex; flex-direction: column; gap: 4px; padding: 22px 12px 16px;
+    background: linear-gradient(180deg, rgba(255,255,255,.035), transparent 40%), var(--bg);
+    border-right: 1px solid var(--line);
+  }
+  body.locked #side { display: none; }
+  body.locked main { margin-left: 0; }
+  .brand {
+    font-size: 27px; font-weight: 950; letter-spacing: -0.065em; padding: 0 12px 18px;
+    color: #e50914; text-shadow: 0 2px 18px rgba(229,9,20,.22);
+    font-family: Impact, "Arial Narrow", Arial, Helvetica, sans-serif; transform: scaleX(.96); transform-origin: left center;
+    white-space: nowrap; text-transform: none;
+  }
+  .brand::first-letter { letter-spacing: -.09em; }
+  /* Keep the BradFlix wordmark branded even when a Harbor theme is imported. */
+  #side .brand { color: #e50914 !important; font-weight: 950 !important; }
+  body[data-layout="rail"] .brand { font-size: 15px; letter-spacing: -.07em; }
+  #nav button[data-go="anime"], #nav button[data-go="calendar"] { color: var(--muted); }
+  .release-day { margin: 20px 0 28px; }
+  .release-date { color: var(--accent); font-weight: 800; border-bottom: 1px solid var(--line); padding-bottom: 8px; margin-bottom: 12px; }
+  .release-item { display:flex; gap:14px; align-items:center; padding:12px 0; border-bottom:1px solid var(--line); }
+  .release-item img { width:64px; height:88px; object-fit:cover; border-radius:var(--radius); background:var(--panel); }
+  .release-item .grow { flex:1; min-width:0; }
+  body[data-theme="apple-tv"] { --bg:#000; --panel:#0d0d0d; --panel-hi:#1c1c1e; --line:#333; --text:#fff; --muted:#a1a1a6; --accent:#fff; --accent-ink:#000; }
+
+  #nav { display: flex; flex-direction: column; gap: 3px; flex: 1; }
+  #nav button {
+    display: flex; align-items: center; gap: 14px; background: none; border: 0; text-align: left;
+    padding: 11px 14px; border-radius: 10px; color: var(--muted); font-weight: 600;
+  }
+  #nav button svg { flex: 0 0 22px; }
+  #nav button:hover { color: var(--text); background: var(--panel); }
+  #nav button.on { color: var(--text); background: var(--panel-hi); box-shadow: inset 3px 0 0 var(--accent); }
+  #nav button.on svg { color: var(--accent); }
+  #chip {
+    display: flex; align-items: center; gap: 10px; background: none; border: 0;
+    padding: 8px 10px; border-radius: 10px; color: var(--muted); font-weight: 600; text-align: left;
+  }
+  #chip:hover { background: var(--panel); color: var(--text); }
+  body[data-layout="rail"] .lbl, body[data-layout="rail"] #chip span { display: none; }
+  body[data-layout="rail"] .brand { font-size: 15px; padding: 0 0 16px; text-align: center; }
+  body[data-layout="rail"] #nav button { justify-content: center; padding: 12px 0; }
+
+  body[data-layout="top"] #side {
+    position: sticky; top: 0; width: auto; flex-direction: row; align-items: center; gap: 18px;
+    padding: 8px 24px; border-right: 0; border-bottom: 1px solid var(--line); background: var(--bg);
+  }
+  body[data-layout="top"] .brand { padding: 0; }
+  body[data-layout="top"] #nav { flex-direction: row; flex-wrap: wrap; }
+  body[data-layout="top"] #nav button { padding: 8px 12px; }
+  body[data-layout="top"] #nav button.on { box-shadow: inset 0 -3px 0 var(--accent); }
+
+  main { margin-left: var(--side); padding: 28px 32px 90px; min-height: 100vh; }
+  body[data-layout="top"] main { margin-left: 0; }
+  h2 { font-size: 22px; margin: 0 0 14px; letter-spacing: -0.01em; }
+  h3 { font-size: 17px; margin: 24px 0 10px; }
+  .muted { color: var(--muted); }
+  .row { margin-bottom: 34px; }
+  .railwrap { position: relative; }
+  .scroller { display: flex; gap: 16px; overflow-x: auto; padding: 4px 2px 12px; scroll-snap-type: x proximity; scroll-behavior: smooth; }
+  .arrow {
+    position: absolute; top: 0; bottom: 12px; width: 44px; border: 0; z-index: 3; font-size: 30px;
+    background: linear-gradient(90deg, var(--bg), transparent); color: var(--text); opacity: 0; transition: opacity .2s;
+  }
+  .arrow.r { right: 0; background: linear-gradient(270deg, var(--bg), transparent); }
+  .arrow.l { left: 0; }
+  .railwrap:hover .arrow { opacity: 1; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, 150px); gap: 22px 16px; }
+
+  /* ---------- cards ---------- */
+  .cardwrap { flex: 0 0 150px; position: relative; scroll-snap-align: start; }
+  .card { width: 150px; background: none; border: 0; padding: 0; text-align: left; display: block; }
+  .card .pw { position: relative; width: 150px; height: 225px; border-radius: var(--radius); overflow: hidden; background: var(--panel); transition: transform .18s, box-shadow .18s; }
+  .card .poster { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .card .poster.ph { display: grid; place-items: center; font-size: 48px; color: var(--muted); }
+  .card:hover .pw { transform: translateY(-4px) scale(1.03); box-shadow: 0 10px 28px rgba(0,0,0,.55), 0 0 0 2px var(--accent); }
+  .card .name {
+    margin-top: 8px; font-size: 14px; line-height: 1.3;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  }
+  .card .sub { font-size: 12px; color: var(--muted); }
+  .cardwrap.wide { flex-basis: 288px; }
+  .card.wide, .card.wide .pw { width: 288px; }
+  .card.wide .pw { height: 162px; }
+  .cardwrap.top10 { flex-basis: 196px; display: flex; align-items: flex-end; }
+  .cardwrap.top10 .num {
+    font-size: 132px; font-weight: 900; line-height: .78; margin-right: -22px; z-index: 0; letter-spacing: -0.08em;
+    color: var(--bg); -webkit-text-stroke: 3px var(--muted); user-select: none;
+  }
+  .card.top10, .card.top10 .pw { width: 130px; z-index: 1; }
+  .card.top10 .pw { height: 195px; }
+  .bar { position: absolute; left: 0; right: 0; bottom: 0; height: 5px; background: rgba(0,0,0,.65); }
+  .bar i { display: block; height: 100%; background: var(--accent); }
+  .x {
+    position: absolute; top: 6px; right: 6px; width: 28px; height: 28px; border-radius: 50%;
+    border: 0; background: rgba(13,15,19,.85); font-size: 13px;
+  }
+  .x:hover { background: var(--bad); color: #2a0b0b; }
+
+  /* ---------- hero ---------- */
+  .hero {
+    position: relative; height: min(64vh, 580px); min-height: 380px; margin: -28px -32px 30px; overflow: hidden;
+    border-radius: 0 0 var(--radius) var(--radius); background: var(--panel);
+  }
+  body[data-layout="top"] .hero { margin-top: -28px; }
+  .hero .slide {
+    position: absolute; inset: 0; opacity: 0; transition: opacity 1s ease;
+    background-size: cover; background-position: center 18%;
+  }
+  .hero .slide.on { opacity: 1; }
+  .hshade {
+    position: absolute; inset: 0;
+    background: linear-gradient(90deg, rgba(0,0,0,.82) 0%, rgba(0,0,0,.4) 45%, transparent 75%),
+                linear-gradient(0deg, var(--bg) 0%, transparent 38%);
+  }
+  .hbody { position: absolute; left: 48px; bottom: 64px; max-width: 580px; z-index: 2; }
+  .hbody .kicker { color: var(--accent); font-weight: 800; letter-spacing: .12em; font-size: 12px; text-transform: uppercase; }
+  .hbody h1 { margin: 6px 0 8px; font-size: clamp(30px, 4.4vw, 54px); line-height: 1.04; letter-spacing: -0.03em; text-shadow: 0 2px 24px rgba(0,0,0,.6); }
+  .hbody .meta { color: #d6dae3; margin-bottom: 10px; font-weight: 600; }
+  .hbody p { margin: 0 0 18px; color: #dde1ea; max-width: 52ch; text-shadow: 0 1px 12px rgba(0,0,0,.7); }
+  .dots { position: absolute; right: 36px; bottom: 30px; display: flex; gap: 8px; z-index: 3; }
+  .dots button { width: 10px; height: 10px; padding: 0; border-radius: 50%; border: 0; background: rgba(255,255,255,.35); }
+  .dots button.on { background: var(--accent); width: 26px; border-radius: 6px; }
+
+  /* ---------- buttons, inputs ---------- */
+  .filters, .searchbar { display: flex; gap: 10px; margin-bottom: 22px; flex-wrap: wrap; align-items: center; }
+  .searchbar { max-width: 680px; }
+  input[type=text], input[type=password], input[type=search], textarea {
+    flex: 1; min-width: 200px; padding: 11px 16px; border-radius: 10px;
+    background: var(--panel); border: 1px solid var(--line);
+  }
+  textarea { width: 100%; min-height: 120px; font-family: "DejaVu Sans Mono", monospace; font-size: 13px; }
+  /* Keep native dropdown controls aligned with the active BradFlix theme.
+     WebKit on Linux can otherwise draw the closed select and its popup with
+     the system's white/light control palette, regardless of the page theme. */
+  select {
+    color-scheme: dark;
+    color: var(--text) !important;
+    background-color: var(--panel) !important;
+    border: 1px solid var(--line) !important;
+    padding: 10px 12px;
+    border-radius: 10px;
+    accent-color: var(--accent);
+  }
+  select option, select optgroup {
+    color-scheme: dark;
+    color: var(--text) !important;
+    background-color: var(--panel) !important;
+  }
+  select:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  .btn {
+    padding: 10px 20px; border-radius: 10px; border: 0; font-weight: 800;
+    background: var(--accent); color: var(--accent-ink);
+  }
+  .btn.quiet { background: var(--panel-hi); color: var(--text); }
+  .btn.ghost { background: rgba(255,255,255,.14); color: #fff; backdrop-filter: blur(6px); }
+  .btn.danger { background: #5a2a2f; color: #ffd6d6; }
+  .btn.small { padding: 6px 12px; font-size: 14px; }
+  .btn:hover { filter: brightness(1.12); }
+  .btn[disabled] { opacity: .45; cursor: not-allowed; }
+  .btns { display: flex; gap: 10px; flex-wrap: wrap; margin: 16px 0; }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+  .chip {
+    padding: 7px 15px; border-radius: 999px; background: var(--panel); border: 1px solid var(--line);
+    color: var(--muted); font-weight: 600; font-size: 14px;
+  }
+  .chip:hover { color: var(--text); border-color: var(--muted); }
+  .chip.on { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  .chip.mix { background: transparent; border-style: dashed; }
+  .rating { display: inline-block; padding: 1px 8px; border-radius: 6px; background: var(--accent); color: var(--accent-ink); font-weight: 800; font-size: 13px; margin-right: 6px; }
+
+  /* ---------- detail ---------- */
+  .dhero { position: relative; margin: -28px -32px 8px; min-height: 480px; display: flex; flex-direction: column; justify-content: flex-end; overflow: hidden; background: var(--panel); }
+  .dbg { position: absolute; inset: 0; background-size: cover; background-position: center 20%; }
+  .dshade { position: absolute; inset: 0; background: linear-gradient(90deg, rgba(0,0,0,.85) 0%, rgba(0,0,0,.45) 55%, rgba(0,0,0,.2) 100%), linear-gradient(0deg, var(--bg) 0%, transparent 55%); }
+  .dtop { position: absolute; top: 20px; left: 32px; z-index: 3; }
+  .dcontent { position: relative; z-index: 2; display: flex; gap: 30px; align-items: flex-end; padding: 90px 48px 26px; }
+  .dposter { width: 190px; border-radius: var(--radius); box-shadow: 0 14px 40px rgba(0,0,0,.6); flex: 0 0 190px; }
+  .dinfo { max-width: 760px; }
+  .dinfo h1 { margin: 0 0 6px; font-size: clamp(30px, 4vw, 46px); letter-spacing: -0.03em; line-height: 1.08; text-shadow: 0 2px 20px rgba(0,0,0,.6); }
+  .facts { color: #d6dae3; margin-bottom: 12px; font-weight: 600; }
+  .desc { max-width: 68ch; color: #dde1ea; margin: 0 0 4px; }
+
+  .list { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; max-width: 900px; }
+  .item {
+    display: flex; align-items: center; gap: 14px; text-align: left; width: 100%;
+    padding: 10px 14px; border-radius: 10px; background: var(--panel); border: 1px solid var(--line);
+  }
+  button.item:hover { background: var(--panel-hi); }
+  .item .grow { flex: 1; min-width: 0; }
+  .item .small { color: var(--muted); font-size: 13px; white-space: pre-line; }
+  .item.off { opacity: .5; }
+  .tag { font-size: 13px; color: var(--muted); }
+  .tag.good { color: var(--good); }
+  .epbar { height: 4px; border-radius: 2px; background: var(--line); margin-top: 6px; overflow: hidden; }
+  .epbar i { display: block; height: 100%; background: var(--accent); }
+  .group { margin: 14px 0 4px; font-weight: 700; color: var(--muted); font-size: 14px; }
+
+  .tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 22px; }
+  .tabs button { background: var(--panel); border: 0; padding: 8px 16px; border-radius: 999px; font-weight: 600; color: var(--muted); }
+  .tabs button.on { background: var(--accent); color: var(--accent-ink); }
+
+  .people { display: flex; gap: 14px; overflow-x: auto; padding-bottom: 10px; }
+  .person { flex: 0 0 96px; background: none; border: 0; text-align: center; padding: 0; }
+  .person .ph {
+    width: 80px; height: 80px; border-radius: 50%; margin: 0 auto 6px; background: var(--panel-hi);
+    object-fit: cover; display: grid; place-items: center; font-size: 28px; color: var(--muted);
+  }
+  .person:hover .ph { box-shadow: 0 0 0 3px var(--accent); }
+  .person .n { font-size: 13px; line-height: 1.25; }
+  .person .r { font-size: 12px; color: var(--muted); line-height: 1.25; }
+
+  .profiles { display: flex; gap: 34px; flex-wrap: wrap; justify-content: center; margin: 40px 0 26px; }
+  .pbtn { background: none; border: 0; text-align: center; padding: 6px; border-radius: 14px; }
+  .pbtn:hover .avatar { box-shadow: 0 0 0 4px var(--accent); }
+  .pbtn .pname { margin-top: 10px; font-weight: 600; }
+  .avatar { display: grid; place-items: center; border-radius: 50%; color: #15112e; font-weight: 800; margin: 0 auto; flex: 0 0 auto; }
+  .lock { font-size: 13px; color: var(--muted); }
+  .center { text-align: center; }
+  .splash { font-size: 44px; font-weight: 900; letter-spacing: -0.04em; margin: 40px 0 0; background: linear-gradient(90deg, var(--text), var(--accent)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .intro { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; overflow: hidden; background: #050506; transition: opacity .55s ease, visibility .55s ease; }
+  .intro.done { opacity: 0; visibility: hidden; pointer-events: none; }
+  .intro::before { content: ""; position: absolute; width: min(70vw, 760px); height: min(70vw, 760px); border-radius: 50%; background: #e50914; filter: blur(100px); opacity: .18; animation: introGlow 2.8s ease both; }
+  .intro-name { position: relative; color: #e50914; font: 950 clamp(48px, 12vw, 148px)/1 Impact, "Arial Narrow", sans-serif; letter-spacing: -.065em; transform: scaleX(.94); text-shadow: 0 6px 38px #e5091455; animation: introReveal 2.65s cubic-bezier(.2,.7,.2,1) both; }
+  .intro-name::first-letter { letter-spacing: -.09em; }
+  .intro-hint { position: absolute; bottom: 7vh; color: #a5a5a5; font-size: 13px; letter-spacing: .16em; text-transform: uppercase; animation: hintFade 2.8s both; }
+  @keyframes introReveal { 0% { opacity: 0; transform: scaleX(.94) scale(.82); filter: blur(18px); letter-spacing: .18em; } 38% { opacity: 1; filter: blur(0); } 70% { transform: scaleX(.94) scale(1.04); letter-spacing: -.065em; } 100% { transform: scaleX(.94) scale(1); } }
+  @keyframes introGlow { 0% { transform: scale(.35); opacity: 0; } 40% { opacity: .28; } 100% { transform: scale(1.2); opacity: 0; } }
+  @keyframes hintFade { 0%, 72% { opacity: 0; } 100% { opacity: .8; } }
+  .catalog-group { margin: 12px 0 26px; padding: 18px 18px 2px; border: 1px solid var(--line); border-radius: var(--radius); background: linear-gradient(135deg, color-mix(in srgb, var(--panel) 92%, var(--accent) 8%), var(--panel)); }
+  .catalog-group > h2 { display: flex; justify-content: space-between; align-items: center; }
+  .group-count { color: var(--muted); font-size: 12px; font-weight: 600; }
+
+  .form { max-width: 760px; }
+  .field { margin: 0 0 18px; }
+  .field label.t { display: block; font-weight: 700; margin-bottom: 6px; }
+  .field .hint { color: var(--muted); font-size: 14px; margin-top: 4px; }
+  .check { display: flex; gap: 10px; align-items: flex-start; margin-bottom: 14px; }
+  .check input { width: 20px; height: 20px; margin-top: 3px; accent-color: var(--accent); }
+  .inline { display: flex; gap: 10px; flex-wrap: wrap; }
+  .note { background: var(--panel); border-left: 4px solid var(--accent); padding: 12px 16px; border-radius: 6px; max-width: 72ch; margin-bottom: 22px; }
+  .swatches { display: flex; gap: 10px; }
+  .swatch { width: 34px; height: 34px; border-radius: 50%; border: 3px solid transparent; }
+  .swatch.on { border-color: var(--text); }
+
+  .themes { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px; margin-bottom: 18px; }
+  .tcard { border-radius: 12px; border: 2px solid var(--line); padding: 12px; text-align: left; min-height: 96px; position: relative; }
+  .tcard.on { border-color: var(--accent); }
+  .tcard .stripes { display: flex; gap: 4px; margin: 10px 0 8px; }
+  .tcard .stripes i { flex: 1; height: 14px; border-radius: 4px; }
+  .tcard .nm { font-weight: 700; font-size: 14px; }
+  .tcard .tools { display: flex; gap: 6px; margin-top: 8px; }
+  .badge { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; }
+
+  .toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+    background: var(--panel-hi); border: 1px solid var(--line);
+    padding: 12px 20px; border-radius: 10px; z-index: 30; max-width: 90vw;
+  }
+  .toast.bad { color: var(--bad); }
+  .countdown {
+    position: fixed; bottom: 24px; right: 24px; background: var(--panel-hi); border: 1px solid var(--accent);
+    padding: 12px 16px; border-radius: 10px; z-index: 30; display: flex; gap: 14px; align-items: center;
+  }
+  .overlay { position: fixed; inset: 0; background: rgba(5,7,10,.75); display: grid; place-items: center; z-index: 20; padding: 16px; }
+  .dialog { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 22px; width: min(500px, 100%); max-height: 90vh; overflow: auto; }
+  .dialog h3 { margin: 0 0 14px; font-size: 19px; }
+  .dialog input[type=text], .dialog input[type=password] { width: 100%; }
+  .dlgrow { display: flex; gap: 10px; justify-content: flex-end; margin-top: 18px; flex-wrap: wrap; }
+  code { background: var(--panel-hi); padding: 1px 6px; border-radius: 5px; font-size: 14px; }
+
+  @media (max-width: 860px) {
+    body { --side: 78px; }
+    .lbl, #chip span { display: none; }
+    main { padding: 20px 14px 70px; }
+    .hero, .dhero { margin: -20px -14px 24px; }
+    .hbody { left: 20px; bottom: 44px; }
+    .dcontent { flex-direction: column; align-items: flex-start; padding: 80px 20px 20px; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; transition: none !important; } }
+</style>
+</head>
+<body class="locked" data-layout="sidebar" data-cards="round">
+<div class="intro" id="intro" role="status" aria-label="BradFlix starting"><div class="intro-name">BradFlix</div><div class="intro-hint">Press any key to skip</div></div>
+<aside id="side">
+  <div class="brand">BradFlix</div>
+  <nav id="nav">
+    <button data-go="home"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg><span class="lbl">Home</span></button>
+    <button data-go="discover"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/></svg><span class="lbl">Discover</span></button>
+    <button data-go="movies"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 4v16M17 4v16M3 9h4M3 15h4M17 9h4M17 15h4"/></svg><span class="lbl">Movies</span></button>
+    <button data-go="shows"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="12" rx="2"/><path d="M8 21h8M12 17v4"/></svg><span class="lbl">Shows</span></button>
+    <button data-go="anime"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 4h16v16H4z"/><path d="m9 8 7 4-7 4z"/></svg><span class="lbl">Anime</span></button>
+    <button data-go="calendar"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18M8 14h2M14 14h2M8 17h2"/></svg><span class="lbl">Release Calendar</span></button>
+    <button data-go="search"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><span class="lbl">Search</span></button>
+    <button data-go="library"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12v18l-6-4-6 4z"/></svg><span class="lbl">My Library</span></button>
+    <button data-go="addons"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><path d="M16.5 13v7M13 16.5h7"/></svg><span class="lbl">Add-ons</span></button>
+    <button data-go="settings"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></svg><span class="lbl">Settings</span></button>
+  </nav>
+  <button id="chip" title="Switch profile"></button>
+</aside>
+<main id="app"></main>
+
+<script>
+"use strict";
+// =====================================================================
+//  Constants
+// =====================================================================
+const CINEMETA = "https://v3-cinemeta.strem.io";   // built-in metadata provider
+const GENRES = ["Action", "Adventure", "Animation", "Biography", "Comedy", "Crime", "Documentary",
+  "Drama", "Family", "Fantasy", "History", "Horror", "Music", "Mystery", "Romance", "Sci-Fi",
+  "Sport", "Thriller", "War", "Western"];
+const COLORS = ["#a594ff", "#ff8fab", "#ffb86b", "#6fd3b2", "#6ec1ff", "#e0d36f"];
+// [3-letter code, 2-letter code, name]
+const LANGS = [["eng", "en", "English"], ["spa", "es", "Spanish"], ["fre", "fr", "French"],
+  ["ger", "de", "German"], ["ita", "it", "Italian"], ["por", "pt", "Portuguese"],
+  ["rus", "ru", "Russian"], ["jpn", "ja", "Japanese"], ["kor", "ko", "Korean"],
+  ["chi", "zh", "Chinese"], ["ara", "ar", "Arabic"], ["hin", "hi", "Hindi"],
+  ["tur", "tr", "Turkish"], ["pol", "pl", "Polish"], ["dut", "nl", "Dutch"],
+  ["swe", "sv", "Swedish"], ["dan", "da", "Danish"], ["nor", "no", "Norwegian"],
+  ["fin", "fi", "Finnish"], ["gre", "el", "Greek"], ["heb", "he", "Hebrew"],
+  ["ukr", "uk", "Ukrainian"], ["cze", "cs", "Czech"], ["hun", "hu", "Hungarian"],
+  ["rum", "ro", "Romanian"], ["tha", "th", "Thai"], ["vie", "vi", "Vietnamese"],
+  ["ind", "id", "Indonesian"]];
+const ALT_CODE = { fre: "fra", ger: "deu", chi: "zho", dut: "nld", gre: "ell", cze: "ces", rum: "ron" };
+
+// =====================================================================
+//  Small helpers
+// =====================================================================
+const $ = (sel) => document.querySelector(sel);
+const app = document.getElementById("app");
+const enc = encodeURIComponent;
+
+function esc(text) {
+  return String(text == null ? "" : text).replace(/[&<>"']/g, (c) =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+function uid() { return Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4); }
+function isWeb(url) { return typeof url === "string" && /^https?:\/\//i.test(url); }
+function fmtTime(sec) {
+  sec = Math.max(0, Math.floor(sec || 0));
+  const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60;
+  const mm = String(m).padStart(h ? 2 : 1, "0"), ss = String(s).padStart(2, "0");
+  return h ? `${h}:${mm}:${ss}` : `${mm}:${ss}`;
+}
+function fmtDate(ts) {
+  try { return new Date(ts).toLocaleString([], { dateStyle: "medium", timeStyle: "short" }); } catch (e) { return ""; }
+}
+
+async function getJSON(url, ms) {
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), ms || 15000);
+  try {
+    const res = await fetch(url, { signal: ctl.signal, cache: "no-store" });
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    return await res.json();
+  } finally { clearTimeout(timer); }
+}
+
+const cache = new Map();   // url -> {t, data}
+async function getCached(url, ms) {
+  const hit = cache.get(url);
+  if (hit && Date.now() - hit.t < 5 * 60 * 1000) return hit.data;
+  const data = await getJSON(url, ms);
+  cache.set(url, { t: Date.now(), data });
+  return data;
+}
+
+let toastTimer = null;
+function toast(message, bad) {
+  document.querySelectorAll(".toast").forEach((t) => t.remove());
+  const el = document.createElement("div");
+  el.className = "toast" + (bad ? " bad" : "");
+  el.textContent = message;
+  document.body.appendChild(el);
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.remove(), 4500);
+}
+
+// ---- dialogs (the built-in prompt() is not available in this window) ----
+function modal(build) {
+  return new Promise((resolve) => {
+    const overlay = document.createElement("div");
+    overlay.className = "overlay";
+    const box = document.createElement("div");
+    box.className = "dialog";
+    box.setAttribute("role", "dialog");
+    box.setAttribute("aria-modal", "true");
+    overlay.appendChild(box);
+    document.body.appendChild(overlay);
+    const onKey = (e) => { if (e.key === "Escape") close(null); };
+    const close = (value) => {
+      document.removeEventListener("keydown", onKey);
+      overlay.remove();
+      resolve(value);
+    };
+    document.addEventListener("keydown", onKey);
+    overlay.addEventListener("mousedown", (e) => { if (e.target === overlay) close(null); });
+    build(box, close);
+  });
+}
+
+function askText(title, opts) {
+  opts = opts || {};
+  return modal((box, close) => {
+    box.innerHTML = `<h3>${esc(title)}</h3>
+      <input id="dlgin" type="${opts.type || "text"}" value="${esc(opts.value || "")}"
+        placeholder="${esc(opts.placeholder || "")}" autocomplete="off"
+        ${opts.numeric ? 'inputmode="numeric" maxlength="4"' : ""}>
+      <div class="dlgrow"><button class="btn quiet" id="dlgno">Cancel</button>
+      <button class="btn" id="dlgok">${esc(opts.okLabel || "OK")}</button></div>`;
+    const input = box.querySelector("#dlgin");
+    const ok = () => close(input.value);
+    box.querySelector("#dlgno").onclick = () => close(null);
+    box.querySelector("#dlgok").onclick = ok;
+    input.onkeydown = (e) => { if (e.key === "Enter") ok(); };
+    setTimeout(() => input.focus(), 0);
+  });
+}
+
+function confirmBox(message, okLabel) {
+  return modal((box, close) => {
+    box.innerHTML = `<h3>${esc(message)}</h3>
+      <div class="dlgrow"><button class="btn quiet" id="dlgno">Cancel</button>
+      <button class="btn danger" id="dlgok">${esc(okLabel || "OK")}</button></div>`;
+    box.querySelector("#dlgno").onclick = () => close(false);
+    box.querySelector("#dlgok").onclick = () => close(true);
+    setTimeout(() => box.querySelector("#dlgno").focus(), 0);
+  }).then((v) => v === true);
+}
+
+// =====================================================================
+//  Data: profiles, settings, saving, syncing
+// =====================================================================
+let state = null;     // everything that is saved
+let profile = null;   // the profile currently watching
+
+function defaultSettings() {
+  return { alang: "eng", slang: "eng", subsOff: false, autoplayFirst: false, autoplayNext: true, metaAddon: "", bestStream: true, minQuality: "any", maxQuality: "2160", skipIntro: false, skipIntroSeconds: 90, streamRules: "" };
+}
+function fixProfile(p) {
+  p.addons = p.addons || [];
+  p.catalogs = p.catalogs || {};
+  p.catalogs.order = p.catalogs.order || [];
+  p.catalogs.home = p.catalogs.home || {};
+  p.catalogs.discover = p.catalogs.discover || {};
+  p.catalogGroups = Array.isArray(p.catalogGroups) ? p.catalogGroups.filter((g) => g && typeof g.name === "string" && Array.isArray(g.catalogs)) : [];
+  p.watchlists = p.watchlists || [];
+  p.history = p.history || [];
+  p.progress = p.progress || {};
+  p.settings = Object.assign(defaultSettings(), p.settings || {});
+  p.pin = p.pin || null;
+  p.color = p.color || COLORS[0];
+  return p;
+}
+function newProfile(name, color) {
+  return fixProfile({
+    id: uid(), name, color,
+    watchlists: [{ id: uid(), name: "Watch later", items: [] }],
+  });
+}
+function fixState(s) {
+  s.syncPath = s.syncPath || "";
+  s.updatedAt = s.updatedAt || 0;
+  s.themes = Array.isArray(s.themes) ? s.themes : [];
+  s.themeId = s.themeId || "bradflix";
+  s.layout = s.layout || "sidebar";
+  s.cards = s.cards || "round";
+  s.font = s.font || "modern";
+  s.customCss = s.customCss || "";
+  return s;
+}
+function migrate(s) {
+  if (s && Array.isArray(s.profiles) && s.profiles.length) {
+    s.profiles.forEach(fixProfile);
+    return fixState(s);
+  }
+  // First run, or data from the very first version of this app.
+  const p = newProfile("Me", COLORS[0]);
+  if (s && Array.isArray(s.addons)) p.addons = s.addons;
+  if (s && Array.isArray(s.history)) {
+    p.history = s.history.map((h) => ({ id: h.id, type: h.type, name: h.name, poster: h.poster, videoId: h.id, at: Date.now() }));
+  }
+  return fixState({ version: 2, profiles: [p] });
+}
+
+async function loadState() {
+  let saved = null;
+  try { saved = await getJSON("/api/state"); } catch (e) { /* first run */ }
+  state = migrate(saved || {});
+}
+
+let saveTimer = null;
+function save() {
+  state.updatedAt = Date.now();
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(flushSave, 400);
+}
+async function flushSave() {
+  try { await fetch("/api/state", { method: "POST", body: JSON.stringify(state) }); } catch (e) { /* ignore */ }
+  if (state.syncPath) pushSync();
+}
+
+async function pushSync() {
+  try {
+    await fetch("/api/file/write", { method: "POST",
+      body: JSON.stringify({ path: state.syncPath, content: JSON.stringify(state) }) });
+  } catch (e) { /* ignore */ }
+}
+// Takes newer data from the sync file if there is some, otherwise sends ours.
+async function syncNow(manual) {
+  if (!state.syncPath) return;
+  try {
+    const res = await fetch("/api/file/read", { method: "POST", body: JSON.stringify({ path: state.syncPath }) });
+    if (!res.ok) {
+      await pushSync();
+      if (manual) toast("No sync file yet, so I created one.");
+      return;
+    }
+    const remote = JSON.parse((await res.json()).content);
+    if ((remote.updatedAt || 0) > (state.updatedAt || 0)) {
+      const keepPath = state.syncPath;
+      const currentId = profile && profile.id;
+      state = migrate(remote);
+      state.syncPath = keepPath;
+      applyTheme();
+      profile = state.profiles.find((p) => p.id === currentId) || null;
+      await fetch("/api/state", { method: "POST", body: JSON.stringify(state) });
+      if (manual) toast("Pulled newer data from the sync file.");
+      return true;
+    }
+    await pushSync();
+    if (manual) toast("Already up to date. Sent this computer's data to the sync file.");
+  } catch (e) {
+    if (manual) toast("Sync failed. Check the file path.", true);
+  }
+}
+
+// ---- PIN (a family lock, not strong security; the data is stored in plain text) ----
+async function hashPin(pin, salt) {
+  const text = salt + ":" + pin;
+  if (typeof crypto !== "undefined" && crypto.subtle) {
+    const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
+    return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
+  }
+  let h = 5381;
+  for (let i = 0; i < text.length; i++) h = ((h * 33) ^ text.charCodeAt(i)) >>> 0;
+  return "x" + h.toString(16);
+}
+async function verifyPin(p) {
+  if (!p.pin) return true;
+  const entered = await askText(`PIN for ${p.name}`, { type: "password", numeric: true, okLabel: "Unlock" });
+  if (entered == null) return false;
+  if ((await hashPin(entered, p.pin.salt)) === p.pin.hash) return true;
+  toast("Wrong PIN.", true);
+  return false;
+}
+
+// =====================================================================
+//  Language, add-on and catalog helpers
+// =====================================================================
+function langEntry(code) { return LANGS.find((l) => l[0] === code); }
+function langList(code) { const e = langEntry(code); return e ? `${e[0]},${e[1]}` : ""; }
+function langMatches(lang, pref) {
+  if (!lang || !pref) return false;
+  const l = String(lang).toLowerCase();
+  const e = langEntry(pref);
+  if (!e) return l === pref;
+  return l === e[0] || l === (ALT_CODE[e[0]] || "") || l === e[1] || l.startsWith(e[1] + "-") || l.startsWith(e[2].toLowerCase());
+}
+
+const addonBase = (url) => String(url).replace(/\/manifest\.json.*$/i, "").replace(/\/+$/, "");
+
+function normalizeManifestUrl(text) {
+  let url = text.trim().replace(/^stremio:\/\//i, "https://");
+  if (!/^https?:\/\//i.test(url)) url = "https://" + url;
+  if (!/manifest\.json/i.test(url)) url = url.replace(/\/+$/, "") + "/manifest.json";
+  return url;
+}
+
+function addonSupports(addon, resource, type, id) {
+  const m = addon.manifest || {};
+  const entry = (m.resources || []).find((r) => (typeof r === "string" ? r : r.name) === resource);
+  if (!entry) return false;
+  const types = (typeof entry === "object" && entry.types) || m.types || [];
+  const prefixes = (typeof entry === "object" && entry.idPrefixes) || m.idPrefixes || [];
+  if (types.length && !types.includes(type)) return false;
+  if (id !== "" && prefixes.length && !prefixes.some((p) => String(id).startsWith(p))) return false;
+  return true;
+}
+function resourceNames(manifest) {
+  return (manifest.resources || []).map((r) => (typeof r === "string" ? r : r.name));
+}
+
+// What a catalog can do: browse, search, filter by genre.
+function catalogInfo(c) {
+  let required = [], supportsSearch = false, supportsGenre = false, genres = null;
+  for (const e of c.extra || []) {
+    if (e.name === "genre") { supportsGenre = true; genres = e.options || null; if (e.isRequired) required.push("genre"); }
+    else if (e.name === "search") { supportsSearch = true; if (e.isRequired) required.push("search"); }
+    else if (e.isRequired && e.name !== "skip") required.push(e.name);
+  }
+  if (Array.isArray(c.extraSupported)) {   // older add-on format
+    if (c.extraSupported.includes("search")) supportsSearch = true;
+    if (c.extraSupported.includes("genre")) supportsGenre = true;
+  }
+  if (Array.isArray(c.extraRequired)) required = required.concat(c.extraRequired);
+  const others = required.filter((r) => r !== "genre" && r !== "skip");
+  return {
+    browsable: others.length === 0,
+    supportsSearch,
+    genres: supportsGenre ? (genres && genres.length ? genres : null) : null,
+    genreRequired: required.includes("genre"),
+  };
+}
+
+function builtinCatalogs() {
+  return ["movie", "series"].map((t) => ({
+    key: `builtin|${t}|top`, base: CINEMETA, type: t, id: "top", source: "Built-in",
+    title: t === "movie" ? "Popular movies" : "Popular series",
+    browsable: true, supportsSearch: true, genres: GENRES, genreRequired: false,
+  }));
+}
+function addonCatalogs(addons) {
+  const out = [];
+  for (const addon of addons) {
+    for (const c of (addon.manifest && addon.manifest.catalogs) || []) {
+      const info = catalogInfo(c);
+      out.push(Object.assign({
+        key: `${addonBase(addon.url)}|${c.type}|${c.id}`, base: addonBase(addon.url),
+        type: c.type, id: c.id, source: addon.name,
+        title: `${c.name || c.id} (${addon.name})`,
+      }, info));
+    }
+  }
+  return out;
+}
+// Browsable catalogs in the order the person chose.
+function allCatalogs() {
+  const list = builtinCatalogs().concat(addonCatalogs(profile.addons).filter((c) => c.browsable));
+  const order = profile.catalogs.order;
+  const rank = (c, i) => { const p = order.indexOf(c.key); return p < 0 ? 1e6 + i : p; };
+  return list.map((c, i) => [c, rank(c, i)]).sort((a, b) => a[1] - b[1]).map((x) => x[0]);
+}
+function visibleCatalogs(where) {
+  return allCatalogs().filter((c) => profile.catalogs[where][c.key] !== false);
+}
+function catalogURL(cat, opts) {
+  opts = opts || {};
+  const extra = [];
+  if (opts.search) extra.push("search=" + enc(opts.search));
+  if (opts.genre) extra.push("genre=" + enc(opts.genre));
+  if (opts.skip) extra.push("skip=" + opts.skip);
+  return `${cat.base}/catalog/${cat.type}/${enc(cat.id)}${extra.length ? "/" + extra.join("&") : ""}.json`;
+}
+function toItem(meta, fallbackType) {
+  return { id: meta.id, type: meta.type || fallbackType, name: meta.name, poster: meta.poster,
+    bg: meta.background, logo: meta.logo, desc: meta.description, year: meta.releaseInfo || meta.year,
+    rating: meta.imdbRating, genres: meta.genres };
+}
+
+// =====================================================================
+//  Progress, history, lists
+// =====================================================================
+function finishedNums(pos, dur) { return dur > 0 && (pos / dur >= 0.92 || dur - pos < 90); }
+function prog(videoId) { return profile.progress[videoId] || null; }
+function isWatched(videoId) {
+  const p = prog(videoId);
+  return !!p && (p.watched === true || finishedNums(p.pos, p.dur));
+}
+function resumeAt(videoId) {
+  const p = prog(videoId);
+  if (p && !isWatched(videoId) && p.pos >= 15 && p.dur > 0) return p.pos;
+  return 0;
+}
+function recordProgress(ctx, pos, dur, p) {
+  if (ctx.noTrack || !ctx.videoId || !(dur > 0)) return;
+  (p || profile).progress[ctx.videoId] = {
+    videoId: ctx.videoId, itemId: ctx.record.id, type: ctx.type, name: ctx.record.name,
+    poster: ctx.record.poster, bg: ctx.record.bg, title: ctx.title, season: ctx.season, episode: ctx.episode,
+    pos, dur, at: Date.now(), watched: finishedNums(pos, dur),
+  };
+}
+function addHistory(ctx) {
+  if (ctx.noTrack) return;
+  profile.history = profile.history.filter((h) => h.videoId !== ctx.videoId);
+  profile.history.unshift({ id: ctx.record.id, type: ctx.type, name: ctx.record.name,
+    poster: ctx.record.poster, bg: ctx.record.bg, title: ctx.title, videoId: ctx.videoId, at: Date.now() });
+  profile.history = profile.history.slice(0, 300);
+  save();
+}
+function continueItems() {
+  const latest = new Map();   // title id -> newest unfinished entry
+  Object.values(profile.progress)
+    .filter((p) => !p.watched && p.dur > 0 && p.pos >= 30 && !finishedNums(p.pos, p.dur))
+    .sort((a, b) => b.at - a.at)
+    .forEach((p) => { if (!latest.has(p.itemId)) latest.set(p.itemId, p); });
+  return [...latest.values()].slice(0, 24).map((p) => ({
+    id: p.itemId, type: p.type, name: p.name, poster: p.poster, bg: p.bg,
+    pct: p.pos / p.dur, sub: p.title && p.title !== p.name ? p.title.replace(p.name, "").trim() + " · " + fmtTime(p.pos) : fmtTime(p.pos),
+  }));
+}
+
+function listsContaining(itemId) { return profile.watchlists.filter((l) => l.items.some((i) => i.id === itemId)); }
+function addToList(list, item) {
+  if (!list.items.some((i) => i.id === item.id)) {
+    list.items.push({ id: item.id, type: item.type, name: item.name, poster: item.poster });
+  }
+}
+async function newList() {
+  const name = await askText("Name your new list", { placeholder: "For example: Weekend movies", okLabel: "Create" });
+  if (!name || !name.trim()) return null;
+  const list = { id: uid(), name: name.trim(), items: [] };
+  profile.watchlists.push(list);
+  save();
+  return list;
+}
+// Lets the person tick which lists an item belongs to.
+function listPicker(item) {
+  return modal((box, close) => {
+    const draw = () => {
+      box.innerHTML = `<h3>Save “${esc(item.name)}” to lists</h3>
+        <div class="list" style="margin:0">${profile.watchlists.map((l) => `
+          <label class="item"><input type="checkbox" data-l="${esc(l.id)}" ${l.items.some((i) => i.id === item.id) ? "checked" : ""}>
+          <span class="grow">${esc(l.name)}</span><span class="tag">${l.items.length}</span></label>`).join("")}</div>
+        <div class="dlgrow"><button class="btn quiet" id="newl">New list…</button><button class="btn" id="done">Done</button></div>`;
+      box.querySelectorAll("[data-l]").forEach((cb) => {
+        cb.onchange = () => {
+          const l = profile.watchlists.find((x) => x.id === cb.dataset.l);
+          if (cb.checked) addToList(l, item); else l.items = l.items.filter((i) => i.id !== item.id);
+          save();
+          draw();
+        };
+      });
+      box.querySelector("#done").onclick = () => close(true);
+      box.querySelector("#newl").onclick = async () => {
+        const l = await newList();
+        if (l) { addToList(l, item); save(); }
+        draw();
+      };
+    };
+    draw();
+  });
+}
+// Chooses one list for many items (used by "save search results").
+function listChooser(count) {
+  return modal((box, close) => {
+    box.innerHTML = `<h3>Save ${count} results to which list?</h3>
+      <div class="list" style="margin:0">${profile.watchlists.map((l) =>
+        `<button class="item" data-l="${esc(l.id)}"><span class="grow">${esc(l.name)}</span><span class="tag">${l.items.length}</span></button>`).join("")}</div>
+      <div class="dlgrow"><button class="btn quiet" id="newl">New list…</button><button class="btn quiet" id="no">Cancel</button></div>`;
+    box.querySelectorAll("[data-l]").forEach((b) => { b.onclick = () => close(profile.watchlists.find((l) => l.id === b.dataset.l)); });
+    box.querySelector("#no").onclick = () => close(null);
+    box.querySelector("#newl").onclick = async () => { close(await newList()); };
+  });
+}
+
+// =====================================================================
+//  Navigation
+// =====================================================================
+let stack = [];     // pages we can go back to
+let view = null;    // { refresh() } for the page on screen, if it needs live updates
+let heroTimer = null;
+
+function clearHero() { clearInterval(heroTimer); heroTimer = null; }
+function setNav(name) {
+  clearHero();
+  document.querySelectorAll("#nav button").forEach((b) => b.classList.toggle("on", b.dataset.go === name));
+  window.scrollTo(0, 0);
+}
+function go(fn) { stack.push(fn); fn(); }
+function back() {
+  stack.pop();
+  const fn = stack[stack.length - 1];
+  if (fn) fn(); else showHome();
+}
+function tab(name) {
+  const pages = {
+    home: showHome, discover: showDiscover, movies: () => showRoom("movie"), shows: () => showRoom("series"),
+    anime: showAnime, calendar: showReleaseCalendar, search: () => showSearch(), library: showLists, history: showHistory, addons: showAddons, settings: () => showSettings(),
+  };
+  stack = [pages[name]];
+  pages[name]();
+}
+function backButton() {
+  return stack.length > 1 ? `<button class="btn ghost" id="back">← Back</button>` : "";
+}
+function wireBack() { const b = $("#back"); if (b) b.onclick = back; }
+function libTabs(active) {
+  return `<div class="tabs"><button class="${active === "lists" ? "on" : ""}" onclick="tab('library')">My Lists</button>
+    <button class="${active === "history" ? "on" : ""}" onclick="tab('history')">Watch history</button></div>`;
+}
+function cssUrl(u) { return String(u || "").replace(/[\\'"()\s]/g, (c) => "%" + c.charCodeAt(0).toString(16).padStart(2, "0")); }
+
+// =====================================================================
+//  Cards
+// =====================================================================
+function cardHTML(item, i, removable, variant) {
+  const img = variant === "wide" ? (item.bg || item.poster) : item.poster;
+  const poster = img
+    ? `<img class="poster" loading="lazy" src="${esc(img)}" alt="">`
+    : `<div class="poster ph">${esc((item.name || "?").slice(0, 1))}</div>`;
+  const bar = item.pct ? `<div class="bar"><i style="width:${Math.round(item.pct * 100)}%"></i></div>` : "";
+  const sub = item.sub ? `<div class="sub">${esc(item.sub)}</div>` : "";
+  const num = variant === "top10" ? `<span class="num" aria-hidden="true">${i + 1}</span>` : "";
+  const v = variant || "";
+  return `<div class="cardwrap ${v}">${num}<button class="card ${v}" data-i="${i}"><div class="pw">${poster}${bar}</div>
+    <div class="name">${esc(item.name)}</div>${sub}</button>
+    ${removable ? `<button class="x" data-rm="${i}" aria-label="Remove ${esc(item.name)}">✕</button>` : ""}</div>`;
+}
+function fillCards(container, items, onRemove, variant) {
+  container.innerHTML = items.map((it, i) => cardHTML(it, i, !!onRemove, variant)).join("");
+  container.querySelectorAll(".card").forEach((btn) => {
+    btn.onclick = () => { const it = items[Number(btn.dataset.i)]; go(() => showDetail(it.type, it.id, it)); };
+  });
+  if (onRemove) container.querySelectorAll("[data-rm]").forEach((b) => {
+    b.onclick = () => onRemove(items[Number(b.dataset.rm)]);
+  });
+}
+
+// A horizontal rail with scroll arrows. Loads when it scrolls near the screen.
+function addRow(title, opts) {
+  opts = opts || {};
+  const section = document.createElement("section");
+  section.className = "row";
+  section.innerHTML = `<h2>${esc(title)}</h2><div class="railwrap"><button class="arrow l" aria-label="Scroll left">‹</button>
+    <div class="scroller"><span class="muted">Loading…</span></div><button class="arrow r" aria-label="Scroll right">›</button></div>`;
+  (opts.into || app).appendChild(section);
+  const box = section.querySelector(".scroller");
+  section.querySelector(".arrow.l").onclick = () => box.scrollBy({ left: -box.clientWidth * 0.8 });
+  section.querySelector(".arrow.r").onclick = () => box.scrollBy({ left: box.clientWidth * 0.8 });
+
+  const load = async () => {
+    try {
+      let items = opts.items;
+      if (!items) {
+        const genre = opts.genre || (opts.cat.genreRequired && opts.cat.genres ? opts.cat.genres[0] : "");
+        const d = await getCached(catalogURL(opts.cat, { genre }));
+        items = (d.metas || []).map((m) => toItem(m, opts.cat.type));
+      }
+      if (opts.limit) items = items.slice(0, opts.limit);
+      if (!items.length) { section.remove(); return; }
+      fillCards(box, items, null, opts.variant);
+    } catch (e) {
+      box.innerHTML = `<span class="muted">Could not load this list. Check your internet connection.</span>`;
+    }
+  };
+  if (opts.lazy && "IntersectionObserver" in window) {
+    const io = new IntersectionObserver((entries) => {
+      if (entries.some((e) => e.isIntersecting)) { io.disconnect(); load(); }
+    }, { rootMargin: "500px" });
+    io.observe(section);
+  } else load();
+}
+
+// =====================================================================
+//  Hero (rotating banner)
+// =====================================================================
+async function heroItemsFrom(candidates, count) {
+  const out = [];
+  const enriched = await Promise.all(candidates.slice(0, count + 4).map(async (it) => {
+    if (it.bg && it.desc) return it;
+    const meta = await fetchMeta(it.type, it.id);
+    if (!meta) return it;
+    return Object.assign({}, it, {
+      bg: it.bg || meta.background, logo: meta.logo, desc: it.desc || meta.description,
+      year: meta.releaseInfo || meta.year, rating: meta.imdbRating, genres: meta.genres || it.genres,
+    });
+  }));
+  for (const it of enriched) { if (it.bg) out.push(it); if (out.length >= count) break; }
+  return out;
+}
+
+function mountHero(slot, items) {
+  if (!items.length) return;
+  const sec = document.createElement("section");
+  sec.className = "hero";
+  sec.innerHTML = items.map((it, i) => `<div class="slide ${i === 0 ? "on" : ""}" style="background-image:url('${cssUrl(it.bg)}')"></div>`).join("") +
+    `<div class="hshade"></div><div class="hbody"></div>
+     <div class="dots">${items.map((_, i) => `<button class="${i === 0 ? "on" : ""}" aria-label="Show slide ${i + 1}"></button>`).join("")}</div>`;
+  slot.appendChild(sec);
+  let at = 0;
+  const show = (i) => {
+    at = (i + items.length) % items.length;
+    const it = items[at];
+    sec.querySelectorAll(".slide").forEach((s, n) => s.classList.toggle("on", n === at));
+    sec.querySelectorAll(".dots button").forEach((d, n) => d.classList.toggle("on", n === at));
+    const meta = [it.type === "series" ? "Series" : "Movie", it.year, it.rating ? `★ ${it.rating}` : ""].filter(Boolean).join("  ·  ");
+    const desc = (it.desc || "").length > 220 ? it.desc.slice(0, 217) + "…" : (it.desc || "");
+    sec.querySelector(".hbody").innerHTML = `<div class="kicker">${it.type === "series" ? "Featured series" : "Featured movie"}</div>
+      <h1>${esc(it.name)}</h1><div class="meta">${esc(meta)}</div><p>${esc(desc)}</p>
+      <div class="btns" style="margin:0"><button class="btn" id="hplay">▶ Play</button><button class="btn ghost" id="hinfo">More info</button></div>`;
+    sec.querySelector("#hplay").onclick = () => go(() => showDetail(it.type, it.id, it, { play: true }));
+    sec.querySelector("#hinfo").onclick = () => go(() => showDetail(it.type, it.id, it));
+  };
+  sec.querySelectorAll(".dots button").forEach((d, n) => { d.onclick = () => { show(n); restart(); } });
+  const restart = () => { clearHero(); heroTimer = setInterval(() => show(at + 1), 8000); };
+  show(0);
+  restart();
+}
+
+async function topItems(type) {
+  const cat = builtinCatalogs().find((c) => c.type === type);
+  const d = await getCached(catalogURL(cat, {}));
+  return (d.metas || []).map((m) => toItem(m, type));
+}
+
+// =====================================================================
+//  Home and the Movies / Shows rooms
+// =====================================================================
+const MIXES = [["Horror", "Comedy"], ["Sci-Fi", "Thriller"], ["Romance", "Comedy"], ["Action", "Adventure"],
+  ["Crime", "Drama"], ["Fantasy", "Animation"], ["Mystery", "Thriller"], ["Horror", "Sci-Fi"]];
+
+function mixChips(type) {
+  return `<h2>Mix genres</h2><div class="chips">${MIXES.map((m, i) =>
+    `<button class="chip mix" data-mix="${i}">${esc(m.join(" + "))}</button>`).join("")}
+    <button class="chip" data-mix="custom">Pick your own…</button></div>`;
+}
+function wireMixChips(root, type) {
+  root.querySelectorAll("[data-mix]").forEach((b) => {
+    b.onclick = () => {
+      discover.key = `builtin|${type}|top`;
+      discover.genres = b.dataset.mix === "custom" ? [] : MIXES[Number(b.dataset.mix)].slice();
+      discover.mode = "all";
+      tab("discover");
+    };
+  });
+}
+
+async function showHome() {
+  setNav("home"); view = { refresh: showHome };
+  app.innerHTML = "";
+  const heroSlot = document.createElement("div");
+  app.appendChild(heroSlot);
+
+  const cw = continueItems();
+  if (cw.length) addRow("Continue watching", { items: cw, variant: "wide" });
+
+  const cats = visibleCatalogs("home");
+  const groupedKeys = new Set();
+  for (const group of profile.catalogGroups || []) {
+    const groupCats = group.catalogs.map((key) => cats.find((cat) => cat.key === key)).filter(Boolean);
+    if (!groupCats.length) continue;
+    const section = document.createElement("section"); section.className = "catalog-group";
+    section.innerHTML = `<h2>${esc(group.name)} <span class="group-count">${groupCats.length} catalog${groupCats.length === 1 ? "" : "s"}</span></h2>`;
+    app.appendChild(section);
+    for (const c of groupCats) {
+      groupedKeys.add(c.key);
+      const builtin = c.key.startsWith("builtin|");
+      addRow(builtin ? `Top 10 ${c.type === "movie" ? "movies" : "series"} today` : c.title,
+        { cat: c, variant: builtin ? "top10" : undefined, limit: builtin ? 10 : 0, lazy: true, into: section });
+    }
+  }
+  let first = true;
+  for (const c of cats.filter((cat) => !groupedKeys.has(cat.key))) {
+    const builtin = c.key.startsWith("builtin|");
+    addRow(builtin ? `Top 10 ${c.type === "movie" ? "movies" : "series"} today` : c.title,
+      { cat: c, variant: builtin ? "top10" : undefined, limit: builtin ? 10 : 0, lazy: !first });
+    first = false;
+  }
+  const mixes = document.createElement("section");
+  mixes.className = "row";
+  mixes.innerHTML = mixChips("movie");
+  app.appendChild(mixes);
+  wireMixChips(mixes, "movie");
+  if (!cats.length && !cw.length) {
+    app.insertAdjacentHTML("afterbegin", `<p class="muted">Your home screen is empty. Turn catalogs on in Settings, then Catalogs.</p>`);
+  }
+
+  // The banner loads last so the page appears instantly.
+  try {
+    const [movies, shows] = await Promise.all([topItems("movie"), topItems("series")]);
+    const mixed = [];
+    for (let i = 0; i < 6; i++) { if (movies[i]) mixed.push(movies[i]); if (shows[i]) mixed.push(shows[i]); }
+    mountHero(heroSlot, await heroItemsFrom(mixed, 4));
+  } catch (e) { /* offline: no banner */ }
+}
+
+async function showRoom(type) {
+  setNav(type === "movie" ? "movies" : "shows"); view = null;
+  const label = type === "movie" ? "movies" : "series";
+  app.innerHTML = "";
+  const heroSlot = document.createElement("div");
+  app.appendChild(heroSlot);
+  const cat = builtinCatalogs().find((c) => c.type === type);
+  addRow(`Top 10 ${label} today`, { cat, variant: "top10", limit: 10 });
+  const mixes = document.createElement("section");
+  mixes.className = "row";
+  mixes.innerHTML = mixChips(type);
+  app.appendChild(mixes);
+  wireMixChips(mixes, type);
+  const rails = ["Action", "Comedy", "Horror", "Sci-Fi", "Thriller", "Drama", "Animation", "Fantasy", "Romance", "Crime", "Family", "Documentary"];
+  rails.forEach((g) => addRow(`${g} ${label}`, { cat, genre: g, lazy: true }));
+  try { mountHero(heroSlot, await heroItemsFrom(await topItems(type), 4)); } catch (e) { /* offline */ }
+}
+// =====================================================================
+//  Anime and TV release calendar
+// =====================================================================
+async function showAnime() {
+  setNav("anime"); view = null;
+  app.innerHTML = `<h2>Anime</h2><p class="muted">Anime catalogs from your installed add-ons, plus the built-in animation catalog.</p>`;
+  const movieCat = builtinCatalogs().find((c) => c.type === "movie");
+  const seriesCat = builtinCatalogs().find((c) => c.type === "series");
+  addRow("Animated movies", { cat: movieCat, genre: "Animation" });
+  addRow("Animated series", { cat: seriesCat, genre: "Animation", lazy: true });
+  const animeCats = visibleCatalogs("discover").filter((c) => {
+    if (!c || !["movie", "series"].includes(c.type) || c.source === "Built-in") return false;
+    return /anime/i.test(`${c.title || ""} ${c.id || ""}`) ||
+      (Array.isArray(c.genres) && c.genres.some((g) => /anime|animation/i.test(String(g))));
+  });
+  const unique = new Set();
+  animeCats.forEach((c) => {
+    if (unique.has(c.key)) return; unique.add(c.key);
+    const genre = Array.isArray(c.genres) ? c.genres.find((g) => /anime/i.test(String(g))) || c.genres.find((g) => /animation/i.test(String(g))) : "";
+    addRow(c.title, { cat: c, genre: genre || "", lazy: true });
+  });
+  if (!animeCats.length) app.insertAdjacentHTML("beforeend", `<p class="note">No anime-specific add-on catalog was detected. The built-in Animation rows are still available. For a dedicated anime catalog, add a Stremio add-on that publishes Anime or Animation catalogs, then reopen this page.</p>`);
+}
+async function showReleaseCalendar() {
+  setNav("calendar"); view = null;
+  app.innerHTML = `<h2>TV & show release calendar</h2><p class="muted">Scheduled TV episodes for the selected week, from TVmaze. Times are shown in your browser's local time zone.</p><div class="filters"><button class="btn quiet" id="calprev">← Previous week</button><strong id="caldate"></strong><button class="btn quiet" id="calnext">Next week →</button><button class="btn" id="calrefresh">Refresh</button></div><div id="calbody"><p class="muted">Loading schedule…</p></div>`;
+  const weekStart = new Date(); weekStart.setHours(0,0,0,0); weekStart.setDate(weekStart.getDate() - ((weekStart.getDay()+6)%7));
+  let offset = 0;
+  const load = async () => {
+    const startDay = new Date(weekStart); startDay.setDate(startDay.getDate()+offset);
+    const endDay = new Date(startDay); endDay.setDate(endDay.getDate()+6);
+    const fmt = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    const nice = d => d.toLocaleDateString(undefined,{month:"short",day:"numeric"});
+    $("#caldate").textContent = `${nice(startDay)} – ${nice(endDay)}, ${endDay.getFullYear()}`;
+    $("#calbody").innerHTML = `<p class="muted">Loading episodes for the week…</p>`;
+    try {
+      const dates = Array.from({length:7}, (_,i) => { const d=new Date(startDay); d.setDate(d.getDate()+i); return d; });
+      const pages = await Promise.all(dates.map(d => getJSON(`https://api.tvmaze.com/schedule?date=${fmt(d)}`, 12000).catch(() => [])));
+      const groups = dates.map((d,i) => ({date:d, entries:(Array.isArray(pages[i])?pages[i]:[]).filter(x=>x&&x.show&&x.name).sort((a,b)=>String(a.airtime||'').localeCompare(String(b.airtime||'')))}));
+      const total = groups.reduce((n,g)=>n+g.entries.length,0);
+      if (!total) { $("#calbody").innerHTML = `<p class="muted">No listed TV episodes were found for this week, or the schedule service is unavailable.</p>`; return; }
+      $("#calbody").innerHTML = groups.filter(g=>g.entries.length).map(g => `<section class="release-day"><h3 class="release-date">${esc(g.date.toLocaleDateString(undefined,{weekday:"long",month:"long",day:"numeric"}))}</h3>${g.entries.map(e => `<div class="release-item">${e.show.image && e.show.image.medium ? `<img src="${esc(e.show.image.medium)}" alt="">` : `<div style="width:64px;height:88px;background:var(--panel);border-radius:var(--radius)"></div>`}<div class="grow"><strong>${esc(e.show.name)}</strong><div>${esc(e.name || "Episode")}</div><div class="small muted">${e.season ? `Season ${e.season}` : ""}${e.number ? ` · Episode ${e.number}` : ""}${e.airtime ? ` · ${esc(e.airtime)}` : ""}${e.show.network && e.show.network.name ? ` · ${esc(e.show.network.name)}` : e.show.webChannel && e.show.webChannel.name ? ` · ${esc(e.show.webChannel.name)}` : ""}</div></div><a href="${esc(e.show.url || "https://www.tvmaze.com")}" target="_blank" rel="noreferrer" class="btn quiet small">Details</a></div>`).join("")}</section>`).join("");
+    } catch (e) { $("#calbody").innerHTML = `<p class="muted">Could not load the calendar. Check your internet connection and try again.</p>`; }
+  };
+  $("#calprev").onclick = () => { offset -= 7; load(); };
+  $("#calnext").onclick = () => { offset += 7; load(); };
+  $("#calrefresh").onclick = load; await load();
+}
+
+// =====================================================================
+//  Who's watching
+// =====================================================================
+function avatarHTML(p, size) {
+  return `<div class="avatar" style="background:${esc(p.color)};width:${size}px;height:${size}px;font-size:${Math.round(size * 0.45)}px">${esc((p.name || "?").trim().charAt(0).toUpperCase())}</div>`;
+}
+function updateChip() {
+  const chip = $("#chip");
+  chip.innerHTML = profile ? `${avatarHTML(profile, 30)}<span>${esc(profile.name)}</span>` : "";
+  document.body.classList.toggle("locked", !profile);
+}
+
+function showProfiles(manage) {
+  profile = null; view = null; stack = []; updateChip(); setNav("");
+  app.innerHTML = `<div class="center"><div class="splash">BradFlix</div><h2 style="font-size:26px;margin-top:14px">${manage ? "Manage profiles" : "Who’s watching?"}</h2>
+    <div class="profiles">${state.profiles.map((p, i) => `
+      <button class="pbtn" data-i="${i}">${avatarHTML(p, 110)}<div class="pname">${esc(p.name)}</div>
+      ${p.pin ? '<div class="lock">PIN protected</div>' : ""}</button>`).join("")}
+      <button class="pbtn" id="addp"><div class="avatar" style="background:var(--panel-hi);color:var(--text);width:110px;height:110px;font-size:50px">+</div><div class="pname">Add profile</div></button>
+    </div>
+    <button class="btn quiet" id="manage">${manage ? "Done" : "Manage profiles"}</button></div>`;
+  app.querySelectorAll("[data-i]").forEach((b) => {
+    b.onclick = async () => {
+      const p = state.profiles[Number(b.dataset.i)];
+      if (!(await verifyPin(p))) return;
+      if (manage) { await editProfile(p); showProfiles(true); } else enterProfile(p);
+    };
+  });
+  $("#addp").onclick = async () => {
+    const name = await askText("Profile name", { placeholder: "Name", okLabel: "Create" });
+    if (!name || !name.trim()) return;
+    state.profiles.push(newProfile(name.trim(), COLORS[state.profiles.length % COLORS.length]));
+    save();
+    showProfiles(manage);
+  };
+  $("#manage").onclick = () => showProfiles(!manage);
+}
+
+function editProfile(p) {
+  return modal((box, close) => {
+    let color = p.color, removePin = false;
+    box.innerHTML = `<h3>Edit profile</h3>
+      <div class="field"><label class="t" for="pn">Name</label><input id="pn" type="text" value="${esc(p.name)}"></div>
+      <div class="field"><label class="t">Colour</label><div class="swatches">${COLORS.map((c) =>
+        `<button class="swatch ${c === color ? "on" : ""}" data-c="${c}" style="background:${c}" aria-label="Colour"></button>`).join("")}</div></div>
+      <div class="field"><label class="t" for="pp">${p.pin ? "Change PIN" : "Set a PIN"} (4 digits, optional)</label>
+        <input id="pp" type="password" inputmode="numeric" maxlength="4" placeholder="${p.pin ? "Leave empty to keep the current PIN" : "Leave empty for no PIN"}">
+        ${p.pin ? '<div class="inline" style="margin-top:8px"><button class="btn quiet small" id="rmpin">Remove PIN</button></div>' : ""}
+        <div class="hint">A PIN keeps family members out of your profile. It is not strong security.</div></div>
+      <div class="dlgrow">${state.profiles.length > 1 ? '<button class="btn danger" id="del" style="margin-right:auto">Delete profile</button>' : ""}
+        <button class="btn quiet" id="no">Cancel</button><button class="btn" id="ok">Save</button></div>`;
+    box.querySelectorAll(".swatch").forEach((s) => {
+      s.onclick = () => { color = s.dataset.c; box.querySelectorAll(".swatch").forEach((x) => x.classList.toggle("on", x === s)); };
+    });
+    const rm = box.querySelector("#rmpin");
+    if (rm) rm.onclick = () => { removePin = true; rm.textContent = "PIN will be removed"; rm.disabled = true; };
+    box.querySelector("#no").onclick = () => close(null);
+    const del = box.querySelector("#del");
+    if (del) del.onclick = async () => {
+      if (await confirmBox(`Delete “${p.name}” and all of its lists and history?`, "Delete")) {
+        state.profiles = state.profiles.filter((x) => x.id !== p.id);
+        save();
+        close(true);
+      }
+    };
+    box.querySelector("#ok").onclick = async () => {
+      const name = box.querySelector("#pn").value.trim();
+      if (!name) { toast("Please enter a name.", true); return; }
+      const pin = box.querySelector("#pp").value;
+      if (pin && !/^\d{4}$/.test(pin)) { toast("The PIN must be exactly 4 digits.", true); return; }
+      p.name = name; p.color = color;
+      if (removePin) p.pin = null;
+      if (pin) { const salt = uid(); p.pin = { salt, hash: await hashPin(pin, salt) }; }
+      save();
+      close(true);
+    };
+  });
+}
+
+function enterProfile(p) {
+  profile = p;
+  cache.clear(); metaCache.clear();
+  updateChip();
+  tab("home");
+  refreshAddons(true);
+  setTimeout(() => checkLinuxUpdate(true), 1200);
+}
+
+// =====================================================================
+//  Discover (pick several genres to mix them)
+// =====================================================================
+const discover = { key: "builtin|movie|top", genres: [], mode: "all", items: [], seen: new Set(), st: null, busy: false };
+
+// Roughly rarest first, so the search starts from the smallest pile.
+const RARITY = ["Documentary", "Western", "War", "Biography", "History", "Music", "Musical", "Sport", "Horror", "Animation",
+  "Family", "Fantasy", "Mystery", "Sci-Fi", "Romance", "Thriller", "Adventure", "Crime", "Action", "Comedy", "Drama"];
+function byRarity(genres) {
+  const rank = (g) => { const i = RARITY.indexOf(g); return i < 0 ? 50 : i; };
+  return genres.slice().sort((a, b) => rank(a) - rank(b));
+}
+function genresOf(m) {
+  const g = Array.isArray(m.genres) ? m.genres : Array.isArray(m.genre) ? m.genre : null;
+  return g ? g.map((x) => String(x).toLowerCase()) : null;
+}
+async function pageOf(cat, genre, skip) {
+  try { const d = await getCached(catalogURL(cat, { genre, skip })); return d.metas || []; } catch (e) { return null; }
+}
+// For titles that do not list their genres: collect ids of the other genres' lists.
+async function loadSets(cat, genres, st) {
+  for (const g of genres) {
+    if (st.sets[g]) continue;
+    const set = new Set();
+    let skip = 0;
+    for (let i = 0; i < 10; i++) {
+      const p = await pageOf(cat, g, skip);
+      if (!p || !p.length) break;
+      skip += p.length;
+      p.forEach((m) => set.add(m.id));
+    }
+    st.sets[g] = set;
+  }
+}
+
+// Returns the next batch of titles for the chosen genres.
+//   "all"  -> every selected genre must match (horror comedies, and so on)
+//   "any"  -> titles from any of the selected genres, mixed together
+async function fetchDiscover(cat, genres, mode, st, seen) {
+  const want = 24, out = [];
+  let guard = 0;
+  const take = (m) => { if (m && m.id && !seen.has(m.id)) { seen.add(m.id); out.push(toItem(m, cat.type)); } };
+
+  if (genres.length <= 1) {
+    const g = genres[0] || "", key = g || "_";
+    const page = await pageOf(cat, g, st.skips[key] || 0);
+    if (!page || !page.length) { st.exhausted = true; return out; }
+    st.skips[key] = (st.skips[key] || 0) + page.length;
+    page.forEach(take);
+    return out;
+  }
+
+  if (mode === "any") {
+    while (out.length < want && guard++ < 6 && !st.exhausted) {
+      const pages = await Promise.all(genres.map((g) => pageOf(cat, g, st.skips[g] || 0)));
+      let got = false;
+      genres.forEach((g, i) => { if (pages[i] && pages[i].length) { st.skips[g] = (st.skips[g] || 0) + pages[i].length; got = true; } });
+      if (!got) { st.exhausted = true; break; }
+      const longest = Math.max(...pages.map((p) => (p ? p.length : 0)));
+      for (let i = 0; i < longest; i++) pages.forEach((p) => { if (p && p[i]) take(p[i]); });
+    }
+    return out;
+  }
+
+  const ordered = byRarity(genres);
+  const primary = ordered[0], rest = ordered.slice(1);
+  while (out.length < want && guard++ < 12 && !st.exhausted) {
+    const page = await pageOf(cat, primary, st.skips[primary] || 0);
+    if (!page || !page.length) { st.exhausted = true; break; }
+    st.skips[primary] = (st.skips[primary] || 0) + page.length;
+    const unknown = [];
+    for (const m of page) {
+      const gs = genresOf(m);
+      if (!gs) { unknown.push(m); continue; }
+      if (rest.every((g) => gs.includes(g.toLowerCase()))) take(m);
+    }
+    if (unknown.length) {
+      await loadSets(cat, rest, st);
+      unknown.forEach((m) => { if (rest.every((g) => st.sets[g] && st.sets[g].has(m.id))) take(m); });
+    }
+  }
+  return out;
+}
+
+function resetDiscover() {
+  discover.items = [];
+  discover.seen = new Set();
+  discover.st = { skips: {}, sets: {}, exhausted: false };
+}
+
+function showDiscover() {
+  setNav("discover"); view = null;
+  const cats = visibleCatalogs("discover");
+  if (!cats.length) {
+    app.innerHTML = `<h2>Discover</h2><p class="muted">No catalogs are turned on for Discover. Turn some on in Settings, then Catalogs.</p>`;
+    return;
+  }
+  if (!cats.some((c) => c.key === discover.key)) { discover.key = cats[0].key; discover.genres = []; }
+  const cat = () => cats.find((c) => c.key === discover.key);
+
+  app.innerHTML = `<h2>Discover</h2>
+    <div class="filters"><select id="dcat" aria-label="Catalog">${cats.map((c) =>
+      `<option value="${esc(c.key)}" ${c.key === discover.key ? "selected" : ""}>${esc(c.title)}</option>`).join("")}</select>
+      <span id="dmodebox"></span></div>
+    <div class="chips" id="dchips"></div>
+    <p class="muted" id="dsummary"></p>
+    <div class="grid" id="dgrid"></div><div style="margin-top:24px" id="dmore"></div>`;
+
+  const drawChips = () => {
+    const c = cat(), box = $("#dchips");
+    if (!c.genres) { box.innerHTML = `<span class="muted">This catalog has no genres to pick from.</span>`; $("#dmodebox").innerHTML = ""; return; }
+    discover.genres = discover.genres.filter((g) => c.genres.includes(g));
+    box.innerHTML = c.genres.map((g) =>
+      `<button class="chip ${discover.genres.includes(g) ? "on" : ""}" data-g="${esc(g)}" aria-pressed="${discover.genres.includes(g)}">${esc(g)}</button>`).join("") +
+      (discover.genres.length ? `<button class="chip mix" id="dclear">Clear</button>` : "");
+    box.querySelectorAll("[data-g]").forEach((b) => {
+      b.onclick = () => {
+        const g = b.dataset.g;
+        discover.genres = discover.genres.includes(g) ? discover.genres.filter((x) => x !== g) : discover.genres.concat(g);
+        drawChips();
+        load(false);
+      };
+    });
+    const cl = $("#dclear");
+    if (cl) cl.onclick = () => { discover.genres = []; drawChips(); load(false); };
+    $("#dmodebox").innerHTML = discover.genres.length > 1
+      ? `<select id="dmode" aria-label="How to combine genres">
+           <option value="all" ${discover.mode === "all" ? "selected" : ""}>Must match all selected genres (mix)</option>
+           <option value="any" ${discover.mode === "any" ? "selected" : ""}>Match any selected genre</option></select>`
+      : "";
+    const dm = $("#dmode");
+    if (dm) dm.onchange = (e) => { discover.mode = e.target.value; load(false); };
+  };
+
+  let token = 0;
+  const load = async (more) => {
+    const mine = ++token;
+    if (!more) { resetDiscover(); $("#dgrid").innerHTML = ""; }
+    const c = cat(), moreBox = $("#dmore");
+    const label = discover.genres.length > 1 ? (discover.mode === "all" ? discover.genres.join(" + ") : discover.genres.join(" or ")) : discover.genres[0] || "";
+    $("#dsummary").textContent = label ? `Showing: ${label}` : "";
+    moreBox.innerHTML = `<span class="muted">${discover.genres.length > 1 && discover.mode === "all" ? "Searching for titles that fit every genre…" : "Loading…"}</span>`;
+    let fresh = [];
+    try { fresh = await fetchDiscover(c, discover.genres, discover.mode, discover.st, discover.seen); }
+    catch (e) { moreBox.innerHTML = `<span class="muted">Could not load this list. Check your internet connection.</span>`; return; }
+    if (mine !== token) return;     // a newer choice replaced this one
+    discover.items = discover.items.concat(fresh);
+    fillCards($("#dgrid"), discover.items);
+    if (discover.st.exhausted && !fresh.length) {
+      moreBox.innerHTML = `<span class="muted">${discover.items.length ? "That is everything I could find." : "Nothing matched. Try fewer genres or “Match any”."}</span>`;
+    } else {
+      moreBox.innerHTML = `<button class="btn quiet" id="loadmore">Load more</button> <span class="muted">${discover.items.length} found so far</span>`;
+      $("#loadmore").onclick = () => load(true);
+    }
+  };
+
+  $("#dcat").onchange = (e) => { discover.key = e.target.value; discover.genres = []; drawChips(); load(false); };
+  drawChips();
+  load(false);
+}
+// =====================================================================
+//  Search
+// =====================================================================
+let lastSearch = "";
+
+function searchSources() {
+  const list = builtinCatalogs().map((c) => ({ cat: c, label: (c.type === "movie" ? "Movies" : "Series") + " · Built-in" }));
+  for (const c of addonCatalogs(profile.addons)) {
+    if (c.supportsSearch) list.push({ cat: c, label: c.title });
+  }
+  return list;
+}
+
+function showSearch() {
+  setNav("search"); view = null;
+  app.innerHTML = `<h2>Search</h2>
+    <div class="searchbar"><input id="q" type="search" placeholder="Movie, show, actor or director" autocomplete="off" value="${esc(lastSearch)}">
+    <button class="btn" id="go">Search</button></div><div id="results"></div>`;
+  const input = $("#q");
+  input.focus();
+  const run = async () => {
+    const q = input.value.trim();
+    if (!q) return;
+    lastSearch = q;
+    const box = $("#results");
+    box.innerHTML = "";
+    const found = [];
+    let pending = 0;
+    const sources = searchSources();
+    pending = sources.length;
+    const tools = document.createElement("div");
+    tools.className = "btns";
+    box.appendChild(tools);
+    for (const src of sources) {
+      const section = document.createElement("section");
+      section.className = "row";
+      section.style.display = "none";
+      section.innerHTML = `<h2>${esc(src.label)}</h2><div class="scroller"></div>`;
+      box.appendChild(section);
+      getCached(catalogURL(src.cat, { search: q }))
+        .then((d) => {
+          const items = (d.metas || []).map((m) => toItem(m, src.cat.type));
+          if (!items.length) return;
+          items.forEach((it) => { if (!found.some((f) => f.id === it.id)) found.push(it); });
+          section.style.display = "";
+          fillCards(section.querySelector(".scroller"), items);
+          tools.innerHTML = `<button class="btn quiet" id="saveall">Save all ${found.length} results to a list</button>`;
+          $("#saveall").onclick = async () => {
+            const list = await listChooser(found.length);
+            if (!list) return;
+            found.forEach((it) => addToList(list, it));
+            save();
+            toast(`Saved ${found.length} titles to “${list.name}”.`);
+          };
+        })
+        .catch(() => {})
+        .finally(() => {
+          pending--;
+          if (pending === 0 && !found.length) box.insertAdjacentHTML("beforeend", `<p class="muted">Nothing found for “${esc(q)}”. Try another spelling.</p>`);
+        });
+    }
+  };
+  $("#go").onclick = run;
+  input.onkeydown = (e) => { if (e.key === "Enter") run(); };
+  if (lastSearch) run();
+}
+
+// =====================================================================
+//  My Lists
+// =====================================================================
+let activeList = "";
+
+function showLists() {
+  setNav("library"); view = null;
+  if (!profile.watchlists.some((l) => l.id === activeList)) activeList = profile.watchlists[0] ? profile.watchlists[0].id : "";
+  const list = profile.watchlists.find((l) => l.id === activeList);
+  app.innerHTML = libTabs("lists") + `<h2>My Lists</h2>
+    <div class="tabs">${profile.watchlists.map((l) =>
+      `<button data-l="${esc(l.id)}" class="${l.id === activeList ? "on" : ""}">${esc(l.name)} (${l.items.length})</button>`).join("")}
+      <button id="newl">+ New list</button></div>
+    <div id="listbody"></div>`;
+  app.querySelectorAll("[data-l]").forEach((b) => { b.onclick = () => { activeList = b.dataset.l; showLists(); }; });
+  $("#newl").onclick = async () => { const l = await newList(); if (l) { activeList = l.id; showLists(); } };
+  const body = $("#listbody");
+  if (!list) { body.innerHTML = `<p class="muted">You have no lists yet. Create one with “New list”.</p>`; return; }
+  body.innerHTML = `<div class="btns" style="margin-top:0"><button class="btn quiet small" id="ren">Rename</button>
+    <button class="btn danger small" id="dell">Delete list</button></div><div class="grid" id="lgrid"></div>`;
+  if (!list.items.length) $("#lgrid").outerHTML = `<p class="muted">This list is empty. Open any title and choose “Lists” to save it here, or save search results straight to a list.</p>`;
+  else fillCards($("#lgrid"), list.items, (it) => { list.items = list.items.filter((i) => i.id !== it.id); save(); showLists(); });
+  $("#ren").onclick = async () => {
+    const name = await askText("Rename list", { value: list.name, okLabel: "Rename" });
+    if (name && name.trim()) { list.name = name.trim(); save(); showLists(); }
+  };
+  $("#dell").onclick = async () => {
+    if (await confirmBox(`Delete the list “${list.name}”?`, "Delete")) {
+      profile.watchlists = profile.watchlists.filter((l) => l.id !== list.id);
+      save(); showLists();
+    }
+  };
+}
+
+// =====================================================================
+//  History
+// =====================================================================
+function showHistory() {
+  setNav("library"); view = null;
+  app.innerHTML = libTabs("history") + `<h2>Watch history</h2>
+    ${profile.history.length ? '<div class="btns" style="margin-top:0"><button class="btn danger small" id="clear">Clear history</button></div>' : ""}
+    <div class="list" id="hl"></div>`;
+  const box = $("#hl");
+  if (!profile.history.length) { box.innerHTML = `<p class="muted">Nothing watched yet.</p>`; return; }
+  box.innerHTML = profile.history.map((h, i) => `
+    <div class="item"><button class="item" style="border:0;padding:0;background:none" data-i="${i}">
+      <span class="grow"><div>${esc(h.title || h.name)}</div><div class="small">${esc(fmtDate(h.at))}</div></span></button>
+      <button class="btn quiet small" data-rm="${i}">Remove</button></div>`).join("");
+  box.querySelectorAll("[data-i]").forEach((b) => {
+    b.onclick = () => { const h = profile.history[Number(b.dataset.i)]; go(() => showDetail(h.type, h.id, h)); };
+  });
+  box.querySelectorAll("[data-rm]").forEach((b) => {
+    b.onclick = () => { profile.history.splice(Number(b.dataset.rm), 1); save(); showHistory(); };
+  });
+  const clear = $("#clear");
+  if (clear) clear.onclick = async () => {
+    if (await confirmBox("Clear the whole watch history?", "Clear")) { profile.history = []; save(); showHistory(); }
+  };
+}
+
+// =====================================================================
+//  Title details
+// =====================================================================
+const metaCache = new Map();
+
+async function fetchMeta(type, id) {
+  const key = type + "|" + id;
+  if (metaCache.has(key)) return metaCache.get(key);
+  const bases = [];
+  const pref = profile.settings.metaAddon;
+  const preferred = profile.addons.find((a) => addonBase(a.url) === pref);
+  if (preferred && addonSupports(preferred, "meta", type, id)) bases.push(addonBase(preferred.url));
+  bases.push(CINEMETA);
+  for (const a of profile.addons) {
+    if (addonSupports(a, "meta", type, id) && !bases.includes(addonBase(a.url))) bases.push(addonBase(a.url));
+  }
+  for (const base of bases) {
+    try {
+      const d = await getJSON(`${base}/meta/${type}/${enc(id)}.json`);
+      if (d && d.meta) { metaCache.set(key, d.meta); return d.meta; }
+    } catch (e) { /* try the next one */ }
+  }
+  return null;
+}
+
+function epSort(a, b) {
+  const sa = a.season === 0 ? 9999 : a.season, sb = b.season === 0 ? 9999 : b.season;
+  return sa - sb || a.episode - b.episode;
+}
+function nextEpisode(episodes, videoId) {
+  const i = episodes.findIndex((e) => e.id === videoId);
+  return i >= 0 && i + 1 < episodes.length && episodes[i + 1].season !== 0 ? episodes[i + 1] : null;
+}
+function epLabel(e) { return `S${e.season}E${e.episode}`; }
+
+function peopleOf(meta) {
+  const extras = meta.app_extras || {};
+  const names = (v) => (Array.isArray(v) ? v : v ? [v] : []).map((x) => (typeof x === "string" ? { name: x } : x)).filter((x) => x && x.name);
+  let cast = names(extras.cast);
+  if (!cast.length) cast = names(meta.cast);
+  return { cast, directors: names(extras.directors).length ? names(extras.directors) : names(meta.director), writers: names(extras.writers).length ? names(extras.writers) : names(meta.writer) };
+}
+function trailerOf(meta) {
+  const ts = (meta.trailerStreams || []).find((t) => t.ytId);
+  if (ts) return ts.ytId;
+  const t = (meta.trailers || []).find((x) => x.source);
+  return t ? t.source : "";
+}
+
+async function showDetail(type, id, hint, opts) {
+  setNav(""); view = null;
+  app.innerHTML = `<p class="muted">Loading…</p>`;
+  const meta = (await fetchMeta(type, id)) || hint;
+  if (!meta || !meta.name) {
+    app.innerHTML = `${backButton()}<p class="muted">Could not load this title.</p>`;
+    wireBack();
+    return;
+  }
+  const record = { id: meta.id || id, type, name: meta.name, poster: meta.poster, bg: meta.background };
+  const episodes = type === "series"
+    ? (meta.videos || []).filter((v) => v.season != null && v.episode != null).map((v) => ({
+        id: v.id || `${record.id}:${v.season}:${v.episode}`, season: Number(v.season), episode: Number(v.episode),
+        title: v.title || v.name || `Episode ${v.episode}`, overview: v.overview || v.description || "" })).sort(epSort)
+    : [];
+  const people = peopleOf(meta);
+  const trailer = trailerOf(meta);
+  const genres = meta.genres || [];
+  const facts = [meta.releaseInfo || meta.year, meta.runtime, meta.imdbRating ? "IMDb " + meta.imdbRating : ""].filter(Boolean).join("   ");
+  let season = null;
+
+  const bgImg = meta.background || "";
+  app.innerHTML = `<div class="dhero">
+      <div class="dbg" style="${bgImg ? `background-image:url('${cssUrl(bgImg)}')` : ""}"></div><div class="dshade"></div>
+      <div class="dtop">${backButton()}</div>
+      <div class="dcontent">
+        ${meta.poster ? `<img class="dposter" src="${esc(meta.poster)}" alt="">` : ""}
+        <div class="dinfo">
+          <h1>${esc(meta.name)}</h1>
+          <div class="facts">${meta.imdbRating ? `<span class="rating">IMDb ${esc(meta.imdbRating)}</span>` : ""}${esc([meta.releaseInfo || meta.year, meta.runtime].filter(Boolean).join("  ·  "))}</div>
+          ${genres.length ? `<div class="chips" id="gchips">${genres.map((g) => `<button class="chip" data-g="${esc(g)}">${esc(g)}</button>`).join("")}</div>` : ""}
+          <p class="desc">${esc(meta.description || "")}</p>
+          <div class="btns" id="actions"></div>
+        </div>
+      </div>
+    </div>
+    <div id="episodes"></div><div id="streams"></div>
+    <div id="cast"></div><div id="similar"></div>`;
+  wireBack();
+  document.querySelectorAll("#gchips .chip").forEach((b) => {
+    b.onclick = () => { discover.key = `builtin|${type}|top`; discover.genres = [b.dataset.g]; discover.mode = "all"; tab("discover"); };
+  });
+
+  const mkCtx = (videoId, title, extra) => Object.assign({ type, record, videoId, title, episodes }, extra || {});
+
+  // What the main button should do.
+  const target = () => {
+    if (type !== "series" || !episodes.length) {
+      const pos = resumeAt(record.id);
+      return { ctx: mkCtx(record.id, meta.name), label: pos ? `Resume ${fmtTime(pos)}` : "Play", resume: pos > 0 };
+    }
+    const entries = Object.values(profile.progress).filter((p) => p.itemId === record.id && p.type === "series").sort((a, b) => b.at - a.at);
+    const last = entries[0];
+    let ep = null, resume = false;
+    if (last) {
+      const cur = episodes.find((e) => e.id === last.videoId);
+      if (cur && !isWatched(cur.id)) { ep = cur; resume = resumeAt(cur.id) > 0; }
+      else if (cur) ep = nextEpisode(episodes, cur.id) || cur;
+    }
+    if (!ep) ep = episodes.find((e) => e.season !== 0) || episodes[0];
+    const label = resume ? `Resume ${epLabel(ep)} · ${fmtTime(resumeAt(ep.id))}` : `Play ${epLabel(ep)}`;
+    return { ctx: mkCtx(ep.id, `${meta.name} ${epLabel(ep)}`, { season: ep.season, episode: ep.episode }), label, resume };
+  };
+
+  const drawActions = () => {
+    const t = target();
+    const inLists = listsContaining(record.id).length;
+    const movieWatched = type !== "series" && isWatched(record.id);
+    $("#actions").innerHTML = `<button class="btn" id="play">${esc(t.label)}</button>
+      ${t.resume ? '<button class="btn quiet" id="fromstart">From start</button>' : ""}
+      ${profile.settings.autoplayFirst ? '<button class="btn quiet" id="sources">Choose source</button>' : ""}
+      ${trailer ? '<button class="btn quiet" id="trailer">Trailer</button>' : ""}
+      <button class="btn quiet" id="lists">${inLists ? `In ${inLists} list${inLists > 1 ? "s" : ""}` : "Add to list"}</button>
+      ${type !== "series" ? `<button class="btn quiet" id="mark">${movieWatched ? "Mark as unwatched" : "Mark as watched"}</button>` : ""}`;
+    $("#play").onclick = () => openStreams(t.ctx, profile.settings.autoplayFirst);
+    const fs = $("#fromstart"); if (fs) fs.onclick = () => openStreams(Object.assign({}, t.ctx, { fromStart: true }), profile.settings.autoplayFirst);
+    const so = $("#sources"); if (so) so.onclick = () => openStreams(t.ctx, false);
+    const tr = $("#trailer"); if (tr) tr.onclick = () => playUrl("https://www.youtube.com/watch?v=" + trailer, `${meta.name} (trailer)`, mkCtx("", meta.name, { noTrack: true }));
+    $("#lists").onclick = async () => { await listPicker(record); drawActions(); };
+    const mk = $("#mark"); if (mk) mk.onclick = () => { toggleWatched(mkCtx(record.id, meta.name)); drawActions(); };
+  };
+
+  const drawEpisodes = () => {
+    if (type !== "series" || !episodes.length) return;
+    const seasons = [...new Set(episodes.map((e) => e.season))];
+    if (season == null || !seasons.includes(season)) {
+      const t = target();
+      season = t.ctx.season != null ? t.ctx.season : (seasons.find((s) => s > 0) ?? seasons[0]);
+    }
+    $("#episodes").innerHTML = `<h3>Episodes</h3>
+      <label>Season <select id="season">${seasons.map((s) =>
+        `<option value="${s}" ${s === season ? "selected" : ""}>${s === 0 ? "Specials" : s}</option>`).join("")}</select></label>
+      <div class="list" id="eplist"></div>`;
+    $("#season").onchange = (e) => { season = Number(e.target.value); drawEpisodes(); };
+    const eps = episodes.filter((e) => e.season === season);
+    $("#eplist").innerHTML = eps.map((e, i) => {
+      const p = prog(e.id), done = isWatched(e.id), pos = resumeAt(e.id);
+      return `<div class="item"><button class="item" style="border:0;padding:0;background:none" data-p="${i}">
+        <span class="grow"><div>${esc(e.episode)}. ${esc(e.title)}</div>
+        ${e.overview ? `<div class="small">${esc(e.overview.slice(0, 160))}${e.overview.length > 160 ? "…" : ""}</div>` : ""}
+        ${p && p.dur > 0 && !done ? `<div class="epbar"><i style="width:${Math.round(100 * p.pos / p.dur)}%"></i></div>` : ""}</span>
+        <span class="tag ${done ? "good" : ""}">${done ? "Watched" : pos ? "Resume " + fmtTime(pos) : ""}</span></button>
+        <button class="btn quiet small" data-w="${i}">${done ? "Unwatch" : "Watched"}</button></div>`;
+    }).join("");
+    $("#eplist").querySelectorAll("[data-p]").forEach((b) => {
+      b.onclick = () => {
+        const e = eps[Number(b.dataset.p)];
+        openStreams(mkCtx(e.id, `${meta.name} ${epLabel(e)}`, { season: e.season, episode: e.episode }), profile.settings.autoplayFirst);
+      };
+    });
+    $("#eplist").querySelectorAll("[data-w]").forEach((b) => {
+      b.onclick = () => {
+        const e = eps[Number(b.dataset.w)];
+        toggleWatched(mkCtx(e.id, `${meta.name} ${epLabel(e)}`, { season: e.season, episode: e.episode }));
+        drawEpisodes(); drawActions();
+      };
+    });
+  };
+
+  drawActions();
+  drawEpisodes();
+  view = { refresh: () => { drawActions(); drawEpisodes(); } };
+  if (opts && opts.play) { const pb = $("#play"); if (pb) pb.click(); }
+
+  // Cast & crew
+  const crew = [...people.directors.map((p) => ({ name: p.name, role: "Director", photo: p.photo })),
+    ...people.writers.map((p) => ({ name: p.name, role: "Writer", photo: p.photo }))];
+  const cards = people.cast.slice(0, 24).map((p) => ({ name: p.name, role: p.character || "", photo: p.photo })).concat(crew.slice(0, 8));
+  if (cards.length) {
+    $("#cast").innerHTML = `<h3>Cast &amp; crew</h3><div class="people">${cards.map((p, i) => `
+      <button class="person" data-i="${i}">${p.photo ? `<img class="ph" src="${esc(p.photo)}" alt="" loading="lazy">` : `<div class="ph">${esc(p.name.charAt(0))}</div>`}
+      <div class="n">${esc(p.name)}</div><div class="r">${esc(p.role)}</div></button>`).join("")}</div>`;
+    $("#cast").querySelectorAll(".person").forEach((b) => {
+      b.onclick = () => { const name = cards[Number(b.dataset.i)].name; go(() => showPerson(name)); };
+    });
+  }
+
+  // Similar titles: same genres, best overlap first
+  if (genres.length) {
+    $("#similar").innerHTML = `<h3>Similar titles</h3><div class="scroller" id="simrow"><span class="muted">Loading…</span></div>`;
+    const cat = builtinCatalogs().find((c) => c.type === type);
+    Promise.all(genres.slice(0, 3).map((g) =>
+      getCached(catalogURL(cat, { genre: g })).then((d) => (d.metas || []).map((m) => toItem(m, type))).catch(() => [])))
+      .then((lists) => {
+        const score = new Map(), byId = new Map();
+        lists.forEach((l) => l.forEach((it) => { if (it.id !== record.id) { score.set(it.id, (score.get(it.id) || 0) + 1); byId.set(it.id, it); } }));
+        const ranked = [...byId.values()].sort((a, b) => score.get(b.id) - score.get(a.id)).slice(0, 20);
+        if (ranked.length) fillCards($("#simrow"), ranked); else $("#similar").innerHTML = "";
+      });
+  }
+}
+
+function toggleWatched(ctx) {
+  if (isWatched(ctx.videoId)) { delete profile.progress[ctx.videoId]; }
+  else {
+    profile.progress[ctx.videoId] = { videoId: ctx.videoId, itemId: ctx.record.id, type: ctx.type, name: ctx.record.name,
+      poster: ctx.record.poster, title: ctx.title, season: ctx.season, episode: ctx.episode, pos: 0, dur: 0, at: Date.now(), watched: true };
+  }
+  save();
+}
+
+// ---- person page: titles that match a name (built-in provider search) ----
+function showPerson(name) {
+  setNav(""); view = null;
+  app.innerHTML = `${backButton()}<h2 style="margin-top:18px">${esc(name)}</h2>
+    <p class="muted">Titles linked to this name from the built-in provider.</p><div id="pr"><span class="muted">Loading…</span></div>`;
+  wireBack();
+  Promise.all(builtinCatalogs().map((c) =>
+    getCached(catalogURL(c, { search: name })).then((d) => (d.metas || []).map((m) => toItem(m, c.type))).catch(() => [])))
+    .then(([movies, series]) => {
+      const box = $("#pr");
+      if (!movies.length && !series.length) { box.innerHTML = `<p class="muted">Nothing found.</p>`; return; }
+      box.innerHTML = `${movies.length ? '<section class="row"><h2>Movies</h2><div class="scroller" id="pm"></div></section>' : ""}
+        ${series.length ? '<section class="row"><h2>Series</h2><div class="scroller" id="ps"></div></section>' : ""}`;
+      if (movies.length) fillCards($("#pm"), movies);
+      if (series.length) fillCards($("#ps"), series);
+    });
+}
+
+// =====================================================================
+//  Streams and playback
+// =====================================================================
+function isPlayable(s) { return !!s && (isWeb(s.url) || !!s.ytId); }
+
+// Asks every stream add-on. `first` resolves with the best playable stream,
+// respecting add-on order (an add-on lower in the list never beats one above it).
+function streamScore(stream, addon, addonIndex) {
+  const settings = profile.settings || {};
+  const label = `${stream.name || ""} ${stream.title || ""} ${stream.description || ""}`.toLowerCase();
+  const rules = String(settings.streamRules || "").split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+  for (const raw of rules) {
+    const mode = raw[0] === "+" || raw[0] === "-" ? raw[0] : "+";
+    const pattern = raw[0] === "+" || raw[0] === "-" ? raw.slice(1).trim() : raw;
+    if (!pattern) continue;
+    try { if (new RegExp(pattern, "i").test(label) && mode === "-") return -200000; } catch (e) { /* invalid patterns are ignored */ }
+  }
+  const q = label.match(/(?:2160p|4k|uhd|1080p|720p|480p|360p)/g) || [];
+  const quality = q.some(x => /2160|4k|uhd/.test(x)) ? 2160 : q.some(x => /1080/.test(x)) ? 1080 : q.some(x => /720/.test(x)) ? 720 : q.some(x => /480/.test(x)) ? 480 : q.some(x => /360/.test(x)) ? 360 : 0;
+  const max = Number(settings.maxQuality || 2160), min = settings.minQuality === "any" ? 0 : Number(settings.minQuality || 0);
+  if (quality && quality > max) return -100000;
+  if (quality && quality < min) return -50000 + quality;
+  let score = settings.bestStream === false ? -addonIndex * 10000 : quality * 2 - addonIndex * 20;
+  const seeds = Number(stream.behaviorHints && (stream.behaviorHints.videoHash ? stream.behaviorHints.seeders : 0) || stream.seeders || 0);
+  score += Math.min(seeds, 500) * 2;
+  if (!quality && settings.bestStream !== false) score -= 100; // prefer sources with explicit quality labels over unknown quality
+  if (/hevc|h265|x265/.test(label)) score += 20;
+  if (/hdr|dolby vision|\bdv\b/.test(label)) score += 10;
+  if (/cam|telesync|hdcam|workprint/.test(label)) score -= 1000;
+  if (/torrent|magnet:|\.torrent\b/.test(label) && !isWeb(stream.url)) score -= 10000;
+  for (const raw of rules) {
+    const mode = raw[0] === "+" || raw[0] === "-" ? raw[0] : "+";
+    const pattern = raw[0] === "+" || raw[0] === "-" ? raw.slice(1).trim() : raw;
+    if (!pattern || mode !== "+") continue;
+    try { if (new RegExp(pattern, "i").test(label)) score += 500; } catch (e) { /* invalid patterns are ignored */ }
+  }
+  return score;
+}
+function runStreams(type, id, onAddon) {
+  const addons = profile.addons.filter((a) => addonSupports(a, "stream", type, id));
+  const results = new Array(addons.length).fill(undefined);
+  const first = new Promise((resolve) => {
+    if (!addons.length) { resolve(null); return; }
+    let remaining = addons.length, settled = false;
+    const check = () => {
+      if (remaining > 0 || settled) return;
+      const candidates = [];
+      results.forEach((list, i) => (list || []).forEach(stream => { if (isPlayable(stream)) { const score = streamScore(stream, addons[i], i); if (score > -100000) candidates.push({stream, addon:addons[i], score}); } }));
+      candidates.sort((a,b) => b.score - a.score);
+      settled = true;
+      resolve(candidates.length ? {stream:candidates[0].stream, addon:candidates[0].addon} : null);
+    };
+    addons.forEach((addon, i) => {
+      getJSON(`${addonBase(addon.url)}/stream/${type}/${enc(id)}.json`)
+        .then((d) => d.streams || []).catch(() => [])
+        .then((list) => { results[i] = list; remaining--; if (onAddon) onAddon(addon, list); check(); });
+    });
+  });
+  return { addons, first };
+}
+
+let streamToken = 0;
+async function openStreams(ctx, auto) {
+  const box = $("#streams");
+  if (!box) return;
+  const token = ++streamToken;
+  box.innerHTML = `<h3>${esc(ctx.title)}</h3>`;
+  const session = runStreams(ctx.type, ctx.videoId, (addon, list) => {
+    if (auto || token !== streamToken) return;
+    const panel = $("#streamlist");
+    if (!panel) return;
+    if (!list.length) return;
+    panel.insertAdjacentHTML("beforeend", `<div class="group">${esc(addon.name)}</div>`);
+    list.forEach((s) => panel.appendChild(streamRow(s, addon, ctx)));
+  });
+  if (!session.addons.length) {
+    box.innerHTML += `<div class="note">You have no add-ons that provide video links yet.
+      Open <b>Add-ons</b> in the menu and paste the link of an add-on you trust.</div>`;
+    return;
+  }
+  box.innerHTML += `<div class="list" id="streamlist"></div><p class="muted" id="sstatus">${auto ? "Finding the best source…" : `Asking ${session.addons.length} add-on(s)…`}</p>`;
+  const result = await session.first;
+  if (token !== streamToken) return;
+  const status = $("#sstatus");
+  if (!result) { if (status) status.textContent = "No playable video links were found. Try a different add-on."; return; }
+  if (auto) { if (status) status.textContent = ""; playStream(result.stream, result.addon, ctx); }
+  else if (status) status.textContent = "";
+}
+
+function streamRow(s, addon, ctx) {
+  let url = s.url;
+  if (!url && s.ytId) url = "https://www.youtube.com/watch?v=" + s.ytId;
+  const label = (s.name || addon.name || "Stream").replace(/\s+/g, " ");
+  const detail = s.title || s.description || "";
+  const playable = isPlayable(s);
+  const el = document.createElement(playable ? "button" : "div");
+  el.className = "item" + (playable ? "" : " off");
+  el.innerHTML = `<div class="grow"><div>${esc(label)}</div><div class="small">${esc(detail)}</div></div>
+    <span class="tag">${playable ? "" : "Torrent only, not supported"}</span>`;
+  if (playable) el.onclick = () => playStream(s, addon, ctx);
+  return el;
+}
+
+async function collectSubs(stream, ctx) {
+  const pref = profile.settings.slang;
+  if (profile.settings.subsOff || !pref) return [];
+  const out = [];
+  const add = (list) => { for (const s of list || []) { if (s && isWeb(s.url) && langMatches(s.lang, pref)) out.push(s.url); } };
+  add(stream.subtitles);
+  if (!ctx.noTrack) {
+    const addons = profile.addons.filter((a) => addonSupports(a, "subtitles", ctx.type, ctx.videoId));
+    await Promise.all(addons.map((a) =>
+      getJSON(`${addonBase(a.url)}/subtitles/${ctx.type}/${enc(ctx.videoId)}.json`, 5000).then((d) => add(d.subtitles)).catch(() => {})));
+  }
+  return out.slice(0, 6);
+}
+
+let watching = null;   // { playId, ctx, lastSave }
+
+async function playStream(stream, addon, ctx) {
+  let url = stream.url;
+  if (!isWeb(url) && stream.ytId) url = "https://www.youtube.com/watch?v=" + stream.ytId;
+  if (!isWeb(url)) { toast("That source cannot be played.", true); return; }
+  const headers = [];
+  const ph = stream.behaviorHints && stream.behaviorHints.proxyHeaders && stream.behaviorHints.proxyHeaders.request;
+  if (ph && typeof ph === "object") Object.keys(ph).forEach((k) => headers.push(`${k}: ${ph[k]}`));
+  const subs = await collectSubs(stream, ctx);
+  await startPlayer(url, ctx, subs, headers);
+}
+function playUrl(url, title, ctx) { return startPlayer(url, Object.assign({}, ctx, { title }), [], []); }
+
+async function startPlayer(url, ctx, subs, headers) {
+  const s = profile.settings;
+  const body = {
+    url, title: ctx.title, key: ctx.noTrack ? "" : ctx.videoId,
+    start: ctx.noTrack || ctx.fromStart ? 0 : (resumeAt(ctx.videoId) > 0 ? resumeAt(ctx.videoId) : (ctx.type === "series" && s.skipIntro ? Number(s.skipIntroSeconds || 0) : 0)),
+    alang: langList(s.alang), slang: langList(s.slang), subsOff: !!s.subsOff, subs, headers,
+  };
+  try {
+    const res = await fetch("/api/play", { method: "POST", body: JSON.stringify(body) });
+    const data = await res.json();
+    if (!res.ok) { toast(data.error || "Could not start playback.", true); return; }
+    toast("Opening in mpv…");
+    if (!ctx.noTrack) { addHistory(ctx); watching = { playId: data.id, ctx, lastSave: 0, profile }; }
+  } catch (e) { toast("Could not reach the app. Is it still running?", true); }
+}
+
+async function pollPlayer() {
+  if (!watching) return;
+  let st;
+  try { st = await getJSON("/api/player", 4000); } catch (e) { return; }
+  const w = watching;
+  if (!w || st.id !== w.playId) { if (w && st.id > w.playId) watching = null; return; }
+  recordProgress(w.ctx, st.pos, st.dur, w.profile);
+  if (st.active) {
+    if (Date.now() - w.lastSave > 10000) { w.lastSave = Date.now(); save(); }
+    return;
+  }
+  watching = null;
+  save();
+  if (view && view.refresh && profile) view.refresh();
+  const next = w.ctx.episodes ? nextEpisode(w.ctx.episodes, w.ctx.videoId) : null;
+  if (next && profile === w.profile && profile.settings.autoplayNext && finishedNums(st.pos, st.dur)) countdownNext(w.ctx, next);
+}
+setInterval(pollPlayer, 2000);
+
+function countdownNext(prev, next) {
+  let left = 8;
+  const el = document.createElement("div");
+  el.className = "countdown";
+  el.innerHTML = `<span id="cdtxt"></span><button class="btn quiet small" id="cdno">Cancel</button>`;
+  document.body.appendChild(el);
+  const text = () => { el.querySelector("#cdtxt").textContent = `Next: ${epLabel(next)} ${next.title} in ${left}s`; };
+  text();
+  const stop = () => { clearInterval(timer); el.remove(); };
+  const timer = setInterval(() => {
+    left--;
+    if (left <= 0) { stop(); playNext(prev, next); } else text();
+  }, 1000);
+  el.querySelector("#cdno").onclick = stop;
+}
+async function playNext(prev, next) {
+  const ctx = Object.assign({}, prev, { videoId: next.id, title: `${prev.record.name} ${epLabel(next)}`,
+    season: next.season, episode: next.episode, fromStart: false });
+  const session = runStreams(ctx.type, ctx.videoId);
+  const result = await session.first;
+  if (!result) { toast("No playable source found for the next episode.", true); return; }
+  playStream(result.stream, result.addon, ctx);
+}
+
+// =====================================================================
+//  Add-ons (with automatic updates)
+// =====================================================================
+async function refreshAddons(silent) {
+  if (!profile || !profile.addons.length) { if (!silent) toast("No add-ons to update."); return; }
+  let changed = 0, failed = 0;
+  await Promise.all(profile.addons.map(async (a) => {
+    try {
+      const m = await getJSON(normalizeManifestUrl(a.url), 10000);
+      if (m && m.id && m.resources) {
+        if (JSON.stringify(m) !== JSON.stringify(a.manifest)) { a.manifest = m; a.name = m.name || a.name; changed++; }
+        a.checkedAt = Date.now();
+      } else failed++;
+    } catch (e) { failed++; }
+  }));
+  if (changed || !silent) save();
+  if (!silent) toast(failed ? `Updated ${changed}. ${failed} could not be reached.` : changed ? `Updated ${changed} add-on(s).` : "All add-ons are up to date.", failed > 0 && !changed);
+}
+
+// =====================================================================
+//  Themes
+// =====================================================================
+const THEME_PRESETS = [
+  { id: "bradflix", name: "BradFlix", vars: { "--bg": "#0d0f13", "--panel": "#171a21", "--panel-hi": "#222733", "--line": "#2a303c", "--text": "#eef0f4", "--muted": "#98a0b0", "--accent": "#ff4d5e", "--accent-ink": "#1a0508" } },
+  { id: "harbor", name: "Harbor", vars: { "--bg": "#141414", "--panel": "#1e1e1e", "--panel-hi": "#2a2a2a", "--line": "#353535", "--text": "#f1ece2", "--muted": "#9a9488", "--accent": "#d9a441", "--accent-ink": "#241a05" } },
+  { id: "nord", name: "Nord", vars: { "--bg": "#2e3440", "--panel": "#3b4252", "--panel-hi": "#434c5e", "--line": "#4c566a", "--text": "#eceff4", "--muted": "#a3adc2", "--accent": "#88c0d0", "--accent-ink": "#1b2a30" } },
+  { id: "dracula", name: "Dracula", vars: { "--bg": "#1e1f29", "--panel": "#282a36", "--panel-hi": "#343746", "--line": "#44475a", "--text": "#f8f8f2", "--muted": "#a4a8c7", "--accent": "#bd93f9", "--accent-ink": "#1b1230" } },
+  { id: "forest", name: "Forest", vars: { "--bg": "#0f1a14", "--panel": "#16251c", "--panel-hi": "#1f3328", "--line": "#2b4536", "--text": "#e8f3ec", "--muted": "#8fae9b", "--accent": "#6fd39a", "--accent-ink": "#08210f" } },
+  { id: "noir", name: "Noir", vars: { "--bg": "#000000", "--panel": "#0f0f0f", "--panel-hi": "#1a1a1a", "--line": "#262626", "--text": "#f2f2f2", "--muted": "#8a8a8a", "--accent": "#ffffff", "--accent-ink": "#000000" } },
+  { id: "aurora", name: "Aurora", vars: { "--bg": "#0b1020", "--panel": "#131a33", "--panel-hi": "#1c2547", "--line": "#28325c", "--text": "#e9efff", "--muted": "#96a3d6", "--accent": "#5eead4", "--accent-ink": "#04211d" } },
+  { id: "royal", name: "Royal", vars: { "--bg": "#130f1f", "--panel": "#1d1730", "--panel-hi": "#2a2145", "--line": "#3a2f5c", "--text": "#f0ebff", "--muted": "#a99bd1", "--accent": "#f5c451", "--accent-ink": "#2b1f00" } },
+];
+const FONT_CHOICES = {
+  modern: '"Noto Sans", "Cantarell", system-ui, sans-serif',
+  serif: 'Georgia, "Noto Serif", "Times New Roman", serif',
+  mono: '"JetBrains Mono", "Fira Code", "DejaVu Sans Mono", monospace',
+  rounded: '"Nunito", "Quicksand", "Noto Sans", system-ui, sans-serif',
+};
+const SAFE_VALUE = /^[#\w\s,.%()\/+\-]+$/;
+
+let themeEl = null;
+function allThemes() { return THEME_PRESETS.concat(state.themes || []); }
+function currentTheme() { return allThemes().find((t) => t.id === state.themeId) || THEME_PRESETS[0]; }
+
+// Removes the few things in CSS that could pull in other files or run code.
+function cleanCss(css) {
+  return String(css || "")
+    .replace(/@import[^;]*;?/gi, "")
+    .replace(/<\/?style[^>]*>/gi, "")
+    .replace(/expression\s*\(/gi, "")
+    .replace(/javascript:/gi, "")
+    .replace(/behavior\s*:/gi, "");
+}
+
+function applyTheme() {
+  if (!themeEl) { themeEl = document.createElement("style"); themeEl.id = "theme-style"; document.head.appendChild(themeEl); }
+  const t = currentTheme();
+  const vars = Object.entries(t.vars || {})
+    .filter(([k, v]) => /^--[\w-]+$/.test(k) && SAFE_VALUE.test(String(v)))
+    .map(([k, v]) => `${k}:${v}`).join(";");
+  let css = `:root{${vars}}`;
+  const font = t.font && /^[\w\s,"'\-]+$/.test(t.font) ? t.font : (FONT_CHOICES[state.font] || FONT_CHOICES.modern);
+  css += `body{font-family:${font}}`;
+  const bg = t.bgImage;
+  if (bg && /^(https:\/\/|data:image\/)/.test(bg) && !/["')\n\r]/.test(bg)) {
+    css += `body{background-image:linear-gradient(rgba(0,0,0,.6),rgba(0,0,0,.6)),url("${bg}");background-size:cover;background-attachment:fixed}`;
+  }
+  css += "\n" + cleanCss(t.css) + "\n" + cleanCss(state.customCss);
+  themeEl.textContent = css;
+  document.body.dataset.layout = state.layout || "sidebar";
+  document.body.dataset.cards = state.cards || "round";
+}
+
+// ---- reading a theme file ----
+function normColor(v) {
+  v = String(v).trim();
+  if (/^#([0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test(v)) return v;
+  if (/^(rgb|hsl)a?\([\d\s.,%\/-]+\)$/i.test(v)) return v;
+  if (/^\d{1,3}(\.\d+)?\s+\d{1,3}(\.\d+)?%\s+\d{1,3}(\.\d+)?%$/.test(v)) return `hsl(${v})`;   // "220 14% 10%"
+  return null;
+}
+// Which of our colours does a theme key most likely mean?
+const TOKEN_RULES = [
+  ["--accent-ink", /(accent|primary|brand).*(ink|fg|foreground|text|contrast)|on-?(accent|primary)/],
+  ["--accent", /accent|primary|brand|highlight/],
+  ["--muted", /muted|secondary-?text|text-?(2|secondary|dim|subtle)|subtle|dim/],
+  ["--text", /text|foreground|(^|-)fg(-|$)|ink/],
+  ["--line", /border|line|divider|outline|stroke/],
+  ["--panel-hi", /(surface|panel|card|elevated|bg|background).*(hi|high|raised|hover|2|alt)|hover/],
+  ["--panel", /surface|panel|card|elevated|sidebar|secondary/],
+  ["--bg", /background|(^|-)bg(-|$)|base|canvas/],
+];
+function tokenFor(name) {
+  const n = String(name).replace(/([a-z])([A-Z])/g, "$1-$2").toLowerCase().replace(/[_\s.]+/g, "-");
+  for (const [token, re] of TOKEN_RULES) if (re.test(n)) return token;
+  return null;
+}
+
+// Best-effort reader. Accepts JSON (any shape) or plain CSS.
+function parseThemeText(text, filename) {
+  const theme = { id: uid(), name: String(filename || "Imported theme").replace(/\.[^.]+$/, ""), vars: {}, css: "", font: "", bgImage: "", imported: true };
+  let obj = null;
+  try { obj = JSON.parse(text); } catch (e) { /* not JSON */ }
+
+  if (!obj || typeof obj !== "object") {
+    const source = String(text);
+    // Harbor's .harborstyle format is section-based: front matter, @tokens, @css, @js.
+    // Translate the supported visual parts; deliberately never execute @js.
+    if (/@tokens\s*[\s\S]*?@css/i.test(source) || /^# Harbor Style/m.test(source)) {
+      const head = source.split(/@tokens/i)[0];
+      const name = head.match(/^name:\s*(.+)$/mi); if (name) theme.name = name[1].trim();
+      const font = head.match(/^font:\s*(.+)$/mi); if (font) theme.font = font[1].trim();
+      const sections = source.split(/@(tokens|css|js)\s*/i);
+      let section = "";
+      for (let i = 1; i < sections.length; i += 2) {
+        section = String(sections[i]).toLowerCase(); const body = sections[i+1] || "";
+        if (section === "tokens") {
+          for (const line of body.split(/\r?\n/)) {
+            const m = line.match(/^\s*(--[\w-]+)\s*:\s*(.*?)\s*;?\s*$/);
+            if (!m) continue;
+            const val = m[2].replace(/;$/, "").trim();
+            const direct = {"--color-canvas":"--bg","--color-surface":"--panel","--color-elevated":"--panel-hi","--color-raised":"--panel-hi","--color-ink":"--text","--color-ink-muted":"--muted","--color-ink-subtle":"--muted","--color-edge":"--line","--color-edge-soft":"--line","--color-accent":"--accent","--color-accent-soft":"--panel-hi","--color-danger":"--bad"}[m[1]];
+            const token = direct || tokenFor(m[1]); const color = normColor(val);
+            if (token && color && !theme.vars[token]) theme.vars[token] = color;
+          }
+        } else if (section === "css") {
+          // Only styles are imported. Strip @import and active content; @js is never run.
+          theme.css += body.split(/@js/i)[0] + "\n";
+          const f = body.match(/--font-(?:display|sans|channel)\s*:\s*([^;]+);/i); if (f && !theme.font) theme.font = f[1].trim();
+        }
+      }
+      theme.css = cleanCss(theme.css);
+      return theme;
+    }
+    theme.css = cleanCss(source);
+    // Pull colours out of a :root { --name: #hex } block when there is one.
+    const re = /(--[\w-]+)\s*:\s*([^;}]+)/g;
+    let m;
+    while ((m = re.exec(source))) {
+      const color = normColor(m[2]), token = tokenFor(m[1]);
+      if (color && token && !theme.vars[token]) theme.vars[token] = color;
+    }
+    return theme;
+  }
+
+  (function walk(o, path) {
+    if (Array.isArray(o)) { o.forEach((v, i) => { if (v && typeof v === "object") walk(v, path.concat(String(i))); }); return; }
+    for (const [k, v] of Object.entries(o)) {
+      if (v && typeof v === "object") { walk(v, path.concat(k)); continue; }
+      if (typeof v !== "string") continue;
+      const here = path.concat(k), last2 = here.slice(-2).join("-");
+      const color = normColor(v);
+      if (color) {
+        const token = tokenFor(last2) || tokenFor(k);
+        if (token && !theme.vars[token]) theme.vars[token] = color;
+      } else if (here.some((p) => /css|style/i.test(p)) && v.includes("{")) {
+        theme.css += v + "\n";
+      } else if (/^(name|title)$/i.test(k) && path.length <= 1 && v.length < 60) {
+        theme.name = v;
+      } else if (/font/i.test(k) && /^[\w\s,"'\-]+$/.test(v) && v.length < 120) {
+        if (!theme.font) theme.font = v;
+      } else if (/background|wallpaper|backdrop|image/i.test(k) && /^(https:\/\/|data:image\/)/.test(v)) {
+        if (!theme.bgImage) theme.bgImage = v;
+      }
+    }
+  })(obj, []);
+  return theme;
+}
+
+function describeTheme(t) {
+  const bits = [];
+  const n = Object.keys(t.vars).length;
+  if (n) bits.push(`${n} colour${n > 1 ? "s" : ""}`);
+  if (t.font) bits.push("a font");
+  if (t.bgImage) bits.push("a background image");
+  if (t.css) bits.push("custom CSS");
+  return bits;
+}
+
+// Shows what was found and lets the person confirm.
+async function importThemeFlow(text, filename) {
+  if (String(text).startsWith("PK")) { toast("This looks like a zipped theme, which I cannot open yet. Paste its text or CSS instead.", true); return; }
+  const theme = parseThemeText(text, filename);
+  const found = describeTheme(theme);
+  const ok = await modal((box, close) => {
+    box.innerHTML = `<h3>Import theme</h3>
+      <div class="field"><label class="t" for="tname">Name</label><input id="tname" type="text" value="${esc(theme.name)}"></div>
+      ${found.length
+        ? `<p>Found: <b>${esc(found.join(", "))}</b></p>
+           <div class="stripes" style="display:flex;gap:6px;margin-bottom:10px">${Object.entries(theme.vars).map(([k, v]) =>
+             `<span title="${esc(k)}" style="width:30px;height:30px;border-radius:6px;border:1px solid var(--line);background:${esc(v)}"></span>`).join("")}</div>
+           <p class="muted" style="font-size:14px">Colours, fonts and background images carry over. Layout code written for other apps, and scripts, do not.
+           Only import themes you trust.</p>`
+        : `<p><b>I could not find anything I recognise in this file.</b></p>
+           <p class="muted" style="font-size:14px">It may use a format I have not seen yet. You can still import it, but it will not change anything.</p>`}
+      <div class="dlgrow"><button class="btn quiet" id="no">Cancel</button><button class="btn" id="yes">Import and use</button></div>`;
+    box.querySelector("#no").onclick = () => close(false);
+    box.querySelector("#yes").onclick = () => { theme.name = box.querySelector("#tname").value.trim() || theme.name; close(true); };
+  });
+  if (!ok) return;
+  state.themes.push(theme);
+  state.themeId = theme.id;
+  save();
+  applyTheme();
+  toast(`Theme “${theme.name}” applied.`);
+}
+
+function settingsThemes(box) {
+  const swatch = (t) => {
+    const v = t.vars || {};
+    return `<div class="stripes"><i style="background:${esc(v["--bg"] || "#000")}"></i><i style="background:${esc(v["--panel"] || "#111")}"></i><i style="background:${esc(v["--accent"] || "#fff")}"></i></div>`;
+  };
+  const draw = () => {
+    box.innerHTML = `
+      <div class="themes">${allThemes().map((t) => `
+        <div class="tcard ${t.id === state.themeId ? "on" : ""}" data-id="${esc(t.id)}" role="button" tabindex="0"
+          style="background:${esc((t.vars || {})["--panel"] || "#171a21")};color:${esc((t.vars || {})["--text"] || "#fff")}">
+          <div class="nm">${esc(t.name)}</div>${swatch(t)}
+          <div class="badge" style="opacity:.7">${t.imported ? "Imported" : "Preset"}${t.id === state.themeId ? " · In use" : ""}</div>
+          ${t.imported ? `<div class="tools"><button class="btn quiet small" data-exp="${esc(t.id)}">Export</button><button class="btn danger small" data-del="${esc(t.id)}">Delete</button></div>` : ""}
+        </div>`).join("")}</div>
+
+      <h3>Import a theme</h3>
+      <p class="muted" style="margin-top:0">Works with <code>.harborstyle</code>, <code>.json</code> and <code>.css</code> files.</p>
+      <div class="btns" style="margin-top:0">
+        <button class="btn" id="tfilebtn">Choose a theme file…</button>
+        <button class="btn quiet" id="tpaste">Paste theme text…</button>
+        <input type="file" id="tfile" accept=".harborstyle,.json,.css,.txt" style="display:none"></div>
+
+      <h3>Look and feel</h3>
+      <div class="field"><label class="t" for="lay">Navigation layout</label>
+        <select id="lay"><option value="sidebar">Left sidebar</option><option value="rail">Icon rail</option><option value="top">Top bar</option></select></div>
+      <div class="field"><label class="t" for="crd">Card corners</label>
+        <select id="crd"><option value="round">Rounded</option><option value="square">Square</option></select></div>
+      <div class="field"><label class="t" for="fnt">Font</label>
+        <select id="fnt"><option value="modern">Modern sans</option><option value="serif">Serif</option><option value="mono">Monospace</option><option value="rounded">Rounded</option></select></div>
+
+      <h3>Your own CSS (advanced)</h3>
+      <div class="field"><textarea id="ccss" spellcheck="false" placeholder=":root { --accent: #00d1b2; }">${esc(state.customCss || "")}</textarea>
+        <div class="inline" style="margin-top:8px"><button class="btn" id="ccssok">Apply</button><button class="btn quiet" id="ccssclr">Clear</button></div></div>`;
+
+    $("#lay").value = state.layout; $("#crd").value = state.cards; $("#fnt").value = state.font;
+    $("#lay").onchange = (e) => { state.layout = e.target.value; save(); applyTheme(); };
+    $("#crd").onchange = (e) => { state.cards = e.target.value; save(); applyTheme(); };
+    $("#fnt").onchange = (e) => { state.font = e.target.value; save(); applyTheme(); };
+    $("#ccssok").onclick = () => { state.customCss = $("#ccss").value; save(); applyTheme(); toast("CSS applied."); };
+    $("#ccssclr").onclick = () => { state.customCss = ""; save(); applyTheme(); draw(); };
+
+    box.querySelectorAll(".tcard").forEach((c) => {
+      const choose = (e) => {
+        if (e.target.closest("button")) return;
+        state.themeId = c.dataset.id; save(); applyTheme(); draw();
+      };
+      c.onclick = choose;
+      c.onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); choose(e); } };
+    });
+    box.querySelectorAll("[data-del]").forEach((b) => {
+      b.onclick = async () => {
+        if (!(await confirmBox("Delete this theme?", "Delete"))) return;
+        state.themes = state.themes.filter((t) => t.id !== b.dataset.del);
+        if (state.themeId === b.dataset.del) state.themeId = "bradflix";
+        save(); applyTheme(); draw();
+      };
+    });
+    box.querySelectorAll("[data-exp]").forEach((b) => {
+      b.onclick = async () => {
+        const t = state.themes.find((x) => x.id === b.dataset.exp);
+        const safe = t.name.replace(/[^\w-]+/g, "_");
+        const path = await askText("Save theme to this file", { value: `~/BradFlix-theme-${safe}.json`, okLabel: "Export" });
+        if (!path) return;
+        const res = await fetch("/api/file/write", { method: "POST", body: JSON.stringify({ path, content: JSON.stringify(t, null, 1) }) });
+        toast(res.ok ? "Theme saved." : "Could not save there. Use a full path ending in .json", !res.ok);
+      };
+    });
+    $("#tfilebtn").onclick = () => $("#tfile").click();
+    $("#tfile").onchange = async (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+      try { await importThemeFlow(await file.text(), file.name); draw(); }
+      catch (err) { toast("Could not read that file.", true); }
+    };
+    $("#tpaste").onclick = async () => {
+      const text = await modal((dlg, close) => {
+        dlg.innerHTML = `<h3>Paste theme text</h3><textarea id="pt" spellcheck="false" placeholder="Paste the contents of a theme file here"></textarea>
+          <div class="dlgrow"><button class="btn quiet" id="no">Cancel</button><button class="btn" id="ok">Continue</button></div>`;
+        dlg.querySelector("#no").onclick = () => close(null);
+        dlg.querySelector("#ok").onclick = () => close(dlg.querySelector("#pt").value);
+        setTimeout(() => dlg.querySelector("#pt").focus(), 0);
+      });
+      if (text && text.trim()) { await importThemeFlow(text, "Pasted theme"); draw(); }
+    };
+  };
+  draw();
+}
+// =====================================================================
+//  Settings
+// =====================================================================
+let settingsTab = "playback";
+
+function showSettings(which) {
+  if (which) settingsTab = which;
+  setNav("settings"); view = null;
+  const tabs = [["playback", "Playback"], ["catalogs", "Catalogs"], ["themes", "Themes"], ["updates", "Updates"], ["data", "Privacy & data"]];
+  app.innerHTML = `<h2>Settings <span class="muted" style="font-size:16px;font-weight:400">for ${esc(profile.name)}</span></h2>
+    <div class="tabs">${tabs.map(([k, n]) => `<button data-t="${k}" class="${k === settingsTab ? "on" : ""}">${n}</button>`).join("")}</div>
+    <div id="sbody" class="form"></div>`;
+  app.querySelectorAll("[data-t]").forEach((b) => { b.onclick = () => showSettings(b.dataset.t); });
+  ({ playback: settingsPlayback, catalogs: settingsCatalogs, themes: settingsThemes, updates: settingsUpdates, data: settingsData }[settingsTab])($("#sbody"));
+}
+
+let updatePromptOpen = false;
+let updateCheckedThisRun = false;
+async function checkLinuxUpdate(silent) {
+  if (updateCheckedThisRun) return;
+  updateCheckedThisRun = true;
+  try {
+    const result = await getJSON("/api/update/check", 20000);
+    if (!result.ok) { if (!silent) toast(result.error || "Could not check for updates.", true); return; }
+    if (!result.available) { if (!silent) toast(`BradFlix is up to date (v${result.current}).`); return; }
+    if (!updatePromptOpen) { updatePromptOpen = true; showLinuxUpdatePrompt(result); }
+  } catch (e) { if (!silent) toast("Could not check for updates. Check your internet connection and make sure curl is installed.", true); }
+}
+
+function showLinuxUpdatePrompt(info) {
+  modal((box, close) => {
+    box.innerHTML = `<h3>BradFlix ${esc(info.version)} is ready</h3>
+      <p>A newer Linux build has been published. Your profiles and watch history are stored separately and will stay in place.</p>
+      <p class="muted">BradFlix will verify the download checksum before replacing its app file. Restart BradFlix after installation to use the new version.</p>
+      <p id="updatestatus" class="muted"></p>
+      <div class="dlgrow"><button class="btn quiet" id="updatelater">Later</button><button class="btn" id="updateinstall">Download and install</button></div>`;
+    box.querySelector("#updatelater").onclick = () => close(false);
+    box.querySelector("#updateinstall").onclick = async () => {
+      const button = box.querySelector("#updateinstall"), status = box.querySelector("#updatestatus");
+      button.disabled = true; status.textContent = "Downloading and verifying the Linux update…";
+      try {
+        const response = await fetch("/api/update/install", { method: "POST" });
+        const result = await response.json();
+        if (!response.ok || !result.ok) throw new Error(result.error || "The update could not be installed.");
+        box.innerHTML = `<h3>Update installed</h3><p>BradFlix ${esc(result.version)} is installed. Close and reopen BradFlix to start the updated version.</p><div class="dlgrow"><button class="btn" id="updatedone">OK</button></div>`;
+        box.querySelector("#updatedone").onclick = () => close(true);
+      } catch (e) { status.textContent = e.message || "The update could not be installed."; button.disabled = false; }
+    };
+  });
+}
+
+function settingsUpdates(box) {
+  box.innerHTML = `<h3>Linux app updates</h3><p>BradFlix checks for a published Linux build when you open a profile. Updates are offered only after a successful GitHub Actions build has been manually published.</p>
+    <p id="updateinfo" class="muted">Checking the installed version…</p><div class="btns"><button class="btn" id="updatecheck">Check now</button></div>
+    <p class="hint">After installing an update, close and reopen BradFlix. If the app is installed in a system-owned folder, start BradFlix with an account that can replace that file or install the downloaded build manually.</p>`;
+  const status = $("#updateinfo");
+  const refresh = async (manual) => {
+    status.textContent = "Checking GitHub for a published Linux build…";
+    try {
+      const result = await getJSON("/api/update/check", 20000);
+      if (!result.ok) { status.textContent = result.error || "Could not check for updates."; return; }
+      status.textContent = result.available ? `Installed v${result.current}. Linux update v${result.version} is available.` : `BradFlix v${result.current} is up to date.`;
+      if (manual && result.available) { updatePromptOpen = true; showLinuxUpdatePrompt(result); }
+    } catch (e) { status.textContent = "Could not reach GitHub. Check your internet connection and make sure curl is installed."; }
+  };
+  $("#updatecheck").onclick = () => refresh(true);
+  refresh(false);
+}
+
+function langOptions(selected, allowNone, noneLabel) {
+  return (allowNone ? `<option value="">${noneLabel}</option>` : "") +
+    LANGS.map((l) => `<option value="${l[0]}" ${l[0] === selected ? "selected" : ""}>${l[2]}</option>`).join("");
+}
+
+function settingsPlayback(box) {
+  const s = profile.settings;
+  const metaAddons = profile.addons.filter((a) => resourceNames(a.manifest || {}).includes("meta"));
+  box.innerHTML = `
+    <div class="field"><label class="t" for="alang">Preferred audio language</label>
+      <select id="alang">${langOptions(s.alang, true, "No preference")}</select></div>
+    <div class="field"><label class="t" for="slang">Preferred subtitle language</label>
+      <select id="slang">${langOptions(s.slang, true, "No preference")}</select>
+      <div class="hint">Used for subtitles that come with a stream or from your subtitle add-ons.</div></div>
+    <div class="check"><input type="checkbox" id="soff" ${s.subsOff ? "checked" : ""}><label for="soff">Turn subtitles off by default</label></div>
+    <div class="check"><input type="checkbox" id="afirst" ${s.autoplayFirst ? "checked" : ""}><label for="afirst"><b>Automatically play a stream when I press Play.</b><br><span class="muted">Waits for all compatible add-ons, then starts the highest-ranked playable stream. Turn this off to choose from the source list.</span></label></div>
+    <div class="check"><input type="checkbox" id="anext" ${s.autoplayNext ? "checked" : ""}><label for="anext"><b>Autoplay the next episode.</b><br><span class="muted">When an episode finishes, the next one starts after a short countdown.</span></label></div>
+    <div class="check"><input type="checkbox" id="beststream" ${s.bestStream !== false ? "checked" : ""}><label for="beststream"><b>Rank streams using my preferences</b><br><span class="muted">Uses detected resolution, your minimum/maximum quality, stream labels and add-on order. Some add-ons provide incomplete source details.</span></label></div>
+    <div class="field"><label class="t" for="minq">Minimum preferred quality</label><select id="minq"><option value="any" ${String(s.minQuality||"any")==="any"?"selected":""}>Any quality</option><option value="480" ${String(s.minQuality||"any")==="480"?"selected":""}>480p</option><option value="720" ${String(s.minQuality||"any")==="720"?"selected":""}>720p</option><option value="1080" ${String(s.minQuality||"any")==="1080"?"selected":""}>1080p</option></select></div>
+    <div class="field"><label class="t" for="maxq">Maximum preferred quality</label><select id="maxq"><option value="720" ${String(s.maxQuality||2160)==="720"?"selected":""}>720p</option><option value="1080" ${String(s.maxQuality||2160)==="1080"?"selected":""}>1080p</option><option value="2160" ${String(s.maxQuality||2160)==="2160"?"selected":""}>4K / 2160p</option></select></div>
+    <div class="check"><input type="checkbox" id="skipintro" ${s.skipIntro ? "checked" : ""}><label for="skipintro"><b>Skip opening segment on episodes</b><br><span class="muted">Uses a fixed skip duration because most add-ons do not provide intro timestamps.</span></label></div>
+    <div class="field"><label class="t" for="skipsecs">Opening segment duration (seconds)</label><input id="skipsecs" type="number" min="0" max="600" value="${Math.max(0,Math.min(600,Number(s.skipIntroSeconds)||90))}"><div class="hint">Only used when starting a series episode from the beginning. Resume progress takes priority.</div></div>
+    <div class="field"><label class="t" for="streamrules">Custom stream match rules</label><textarea id="streamrules" placeholder="+\bremux\b&#10;-\bcam\b">${esc(s.streamRules || "")}</textarea><div class="hint">One regular expression per line. Prefix with <code>+</code> to strongly prefer a match, or <code>-</code> to keep it out of automatic playback. Unprefixed patterns are treated as <code>+</code>. Manual source selection still shows every source. Invalid patterns are ignored.</div></div>
+    <div class="field"><label class="t" for="metaa">Metadata provider</label>
+      <select id="metaa"><option value="">Built-in (Cinemeta)</option>${metaAddons.map((a) =>
+        `<option value="${esc(addonBase(a.url))}" ${addonBase(a.url) === s.metaAddon ? "selected" : ""}>${esc(a.name)}</option>`).join("")}</select>
+      <div class="hint">Where titles, posters and cast information come from. Only add-ons that offer “meta” appear here.</div></div>
+    <div class="btns"><button class="btn quiet" id="switch">Switch or edit profiles</button></div>`;
+  const set = (key, val) => { s[key] = val; save(); };
+  $("#alang").onchange = (e) => set("alang", e.target.value);
+  $("#slang").onchange = (e) => set("slang", e.target.value);
+  $("#soff").onchange = (e) => set("subsOff", e.target.checked);
+  $("#afirst").onchange = (e) => set("autoplayFirst", e.target.checked);
+  $("#anext").onchange = (e) => set("autoplayNext", e.target.checked);
+  $("#beststream").onchange = (e) => set("bestStream", e.target.checked);
+  $("#minq").onchange = (e) => set("minQuality", e.target.value);
+  $("#maxq").onchange = (e) => set("maxQuality", e.target.value);
+  $("#skipintro").onchange = (e) => set("skipIntro", e.target.checked);
+  $("#skipsecs").onchange = (e) => set("skipIntroSeconds", Math.max(0, Math.min(600, Number(e.target.value)||0)));
+  $("#streamrules").onchange = (e) => set("streamRules", e.target.value);
+  $("#metaa").onchange = (e) => { set("metaAddon", e.target.value); metaCache.clear(); };
+  $("#switch").onclick = () => showProfiles(true);
+}
+
+function settingsAddons(box) {
+  box.innerHTML = `<div class="note">Add-ons are what find video links. BradFlix does not include any,
+    so it only shows movie and show information until you add some. They stay up to date automatically.
+    Only add add-ons from sources you trust, and that are legal where you live.</div>
+    <div class="searchbar"><input id="url" type="text" placeholder="Paste an add-on link here" autocomplete="off">
+    <button class="btn" id="add">Add</button></div>
+    <div class="btns" style="margin-top:0"><button class="btn quiet small" id="updall">Update all now</button></div>
+    <div class="list" id="addonlist"></div>`;
+  const draw = () => {
+    const list = $("#addonlist");
+    if (!profile.addons.length) { list.innerHTML = `<p class="muted">No add-ons yet.</p>`; return; }
+    list.innerHTML = profile.addons.map((a, i) => {
+      const m = a.manifest || {};
+      return `<div class="item"><div class="grow"><div>${esc(a.name)} ${m.version ? `<span class="tag">v${esc(m.version)}</span>` : ""}</div>
+        <div class="small">${esc(resourceNames(m).join(", "))}${m.description ? "\n" + esc(String(m.description).slice(0, 140)) : ""}${a.checkedAt ? "\nChecked " + esc(fmtDate(a.checkedAt)) : ""}</div></div>
+        <button class="btn quiet small" data-rm="${i}">Remove</button></div>`;
+    }).join("");
+    list.querySelectorAll("[data-rm]").forEach((b) => {
+      b.onclick = () => { profile.addons.splice(Number(b.dataset.rm), 1); save(); draw(); };
+    });
+  };
+  $("#add").onclick = async () => {
+    const text = $("#url").value;
+    if (!text.trim()) return;
+    const url = normalizeManifestUrl(text);
+    try {
+      const manifest = await getJSON(url);
+      if (!manifest || !manifest.id || !manifest.resources) throw new Error("not an add-on");
+      profile.addons = profile.addons.filter((a) => addonBase(a.url) !== addonBase(url));
+      profile.addons.push({ url, name: manifest.name || manifest.id, manifest, checkedAt: Date.now() });
+      save();
+      $("#url").value = "";
+      toast("Added " + (manifest.name || manifest.id));
+      draw();
+    } catch (e) { toast("That link did not work as an add-on. Check it and try again.", true); }
+  };
+  $("#updall").onclick = async () => { await refreshAddons(false); draw(); };
+  draw();
+}
+
+function settingsCatalogs(box) {
+  box.innerHTML = `<p class="muted">Choose what appears on Home and Discover, reorder catalogs, and organize Home into custom sections.</p>
+    <div class="list" id="cl"></div><h3>Home sections</h3><p class="muted">Create named rows to group related catalogs, for example “My favorites” or “Animation.”</p>
+    <div class="inline"><input id="groupname" type="text" maxlength="48" placeholder="Section name"><button class="btn" id="groupadd">Create section</button></div><div class="list" id="grouplist" style="margin-top:14px"></div>`;
+  const draw = () => {
+    const cats = allCatalogs();
+    $("#cl").innerHTML = cats.map((c, i) => `
+      <div class="item"><div class="grow"><div>${esc(c.title)}</div><div class="small">${esc(c.type)}</div></div>
+        <label class="tag"><input type="checkbox" data-h="${esc(c.key)}" ${profile.catalogs.home[c.key] !== false ? "checked" : ""}> Home</label>
+        <label class="tag"><input type="checkbox" data-d="${esc(c.key)}" ${profile.catalogs.discover[c.key] !== false ? "checked" : ""}> Discover</label>
+        <button class="btn quiet small" data-up="${i}" aria-label="Move up" ${i === 0 ? "disabled" : ""}>↑</button>
+        <button class="btn quiet small" data-dn="${i}" aria-label="Move down" ${i === cats.length - 1 ? "disabled" : ""}>↓</button></div>`).join("");
+    $("#cl").querySelectorAll("[data-h]").forEach((c) => { c.onchange = () => { profile.catalogs.home[c.dataset.h] = c.checked; save(); }; });
+    $("#cl").querySelectorAll("[data-d]").forEach((c) => { c.onchange = () => { profile.catalogs.discover[c.dataset.d] = c.checked; save(); }; });
+    const move = (i, dir) => {
+      const keys = cats.map((c) => c.key);
+      const j = i + dir;
+      [keys[i], keys[j]] = [keys[j], keys[i]];
+      profile.catalogs.order = keys;
+      save(); draw();
+    };
+    $("#cl").querySelectorAll("[data-up]").forEach((b) => { b.onclick = () => move(Number(b.dataset.up), -1); });
+    $("#cl").querySelectorAll("[data-dn]").forEach((b) => { b.onclick = () => move(Number(b.dataset.dn), 1); });
+    const groups = profile.catalogGroups || [];
+    $("#grouplist").innerHTML = groups.length ? groups.map((g, i) => `
+      <div class="item" style="align-items:flex-start"><div class="grow"><label class="t" for="gn${i}">Section name</label><input id="gn${i}" type="text" maxlength="48" value="${esc(g.name)}"><div class="small" style="margin:8px 0">Choose catalogs in this section</div>
+      <div class="inline">${cats.map((c) => `<label class="tag"><input type="checkbox" data-gcat="${i}" value="${esc(c.key)}" ${(g.catalogs || []).includes(c.key) ? "checked" : ""}> ${esc(c.title)}</label>`).join("")}</div></div>
+      <button class="btn quiet small" data-gup="${i}" aria-label="Move section up" ${i === 0 ? "disabled" : ""}>↑</button><button class="btn quiet small" data-gdn="${i}" aria-label="Move section down" ${i === groups.length - 1 ? "disabled" : ""}>↓</button><button class="btn danger small" data-grm="${i}">Remove</button></div>`).join("") : `<p class="muted">No custom Home sections yet.</p>`;
+    groups.forEach((g, i) => {
+      const name = $(`#gn${i}`); name.onchange = () => { g.name = name.value.trim() || "My section"; save(); };
+      Array.from(document.querySelectorAll("[data-gcat]")).filter((el) => Number(el.dataset.gcat) === i).forEach((c) => { c.onchange = () => { g.catalogs = Array.from(document.querySelectorAll("[data-gcat]")).filter((el) => Number(el.dataset.gcat) === i && el.checked).map((el) => el.value); save(); }; });
+    });
+    const moveGroup = (i, d) => { const j = i + d; [groups[i], groups[j]] = [groups[j], groups[i]]; save(); draw(); };
+    $("#grouplist").querySelectorAll("[data-gup]").forEach((b) => b.onclick = () => moveGroup(Number(b.dataset.gup), -1));
+    $("#grouplist").querySelectorAll("[data-gdn]").forEach((b) => b.onclick = () => moveGroup(Number(b.dataset.gdn), 1));
+    $("#grouplist").querySelectorAll("[data-grm]").forEach((b) => b.onclick = () => { groups.splice(Number(b.dataset.grm), 1); profile.catalogGroups = groups; save(); draw(); });
+  };
+  $("#groupadd").onclick = () => { const name = $("#groupname").value.trim(); if (!name) { toast("Enter a section name first.", true); return; } profile.catalogGroups.push({ name, catalogs: [] }); save(); draw(); };
+  draw();
+}
+
+function settingsData(box) {
+  box.innerHTML = `
+    <div class="note"><b>Your privacy.</b> There are no accounts, no tracking and no analytics. Everything is stored on this
+    computer in <code>~/.config/bradflix/state.json</code>. The app only contacts the built-in metadata
+    provider (for titles and artwork), the add-ons you added, and the servers of the videos you choose to play.</div>
+
+    <h3>Sync between computers</h3>
+    <div class="field"><label class="t" for="syncp">Sync file</label>
+      <div class="inline"><input id="syncp" type="text" placeholder="~/Sync/wuplay.json" value="${esc(state.syncPath)}">
+      <button class="btn" id="syncsave">Save</button><button class="btn quiet" id="syncnow">Sync now</button></div>
+      <div class="hint">Pick a file inside a folder that Syncthing, Nextcloud, Dropbox or similar keeps in sync across your computers.
+      BradFlix keeps your profiles, lists, history and progress in that file and picks up newer changes when it starts. Leave empty to turn off.
+      The newest data wins, so avoid using two computers at the same moment.</div></div>
+
+    <h3>Backup</h3>
+    <div class="field"><label class="t" for="bkp">Backup file</label>
+      <div class="inline"><input id="bkp" type="text" value="~/BradFlix-backup.json">
+      <button class="btn" id="bexp">Export</button><button class="btn quiet" id="bimp">Import</button></div>
+      <div class="hint">Export saves everything for all profiles. Import replaces what is here with the contents of that file.</div></div>
+
+    <h3>Clean up</h3>
+    <div class="btns"><button class="btn danger small" id="chist">Clear history</button>
+      <button class="btn danger small" id="cprog">Clear watch progress</button>
+      <button class="btn danger small" id="cwipe">Erase everything</button></div>
+    <p class="muted">For safety, BradFlix's local management page is served only inside its own app window.</p>`;
+
+  $("#syncsave").onclick = async () => {
+    state.syncPath = $("#syncp").value.trim();
+    save();
+    if (state.syncPath) { await syncNow(true); showSettings("data"); } else toast("Sync turned off.");
+  };
+  $("#syncnow").onclick = async () => {
+    if (!state.syncPath) { toast("Enter a sync file path first.", true); return; }
+    const pulled = await syncNow(true);
+    if (pulled) showProfiles(false);
+  };
+  $("#bexp").onclick = async () => {
+    const res = await fetch("/api/file/write", { method: "POST", body: JSON.stringify({ path: $("#bkp").value, content: JSON.stringify(state, null, 1) }) });
+    toast(res.ok ? "Backup saved." : "Could not save there. Use a full path ending in .json", !res.ok);
+  };
+  $("#bimp").onclick = async () => {
+    const res = await fetch("/api/file/read", { method: "POST", body: JSON.stringify({ path: $("#bkp").value }) });
+    if (!res.ok) { toast("Could not read that file.", true); return; }
+    let data;
+    try { data = JSON.parse((await res.json()).content); } catch (e) { toast("That file is not a BradFlix backup.", true); return; }
+    if (!data || !Array.isArray(data.profiles)) { toast("That file is not a BradFlix backup.", true); return; }
+    if (!(await confirmBox("Replace everything here with the backup?", "Replace"))) return;
+    const keep = state.syncPath;
+    state = migrate(data); state.syncPath = keep;
+    save();
+    showProfiles(false);
+  };
+  $("#chist").onclick = async () => { if (await confirmBox("Clear history for this profile?", "Clear")) { profile.history = []; save(); toast("History cleared."); } };
+  $("#cprog").onclick = async () => { if (await confirmBox("Forget where you stopped in everything?", "Clear")) { profile.progress = {}; save(); toast("Progress cleared."); } };
+  $("#cwipe").onclick = async () => {
+    if (!(await confirmBox("Erase ALL profiles, lists, add-ons and history?", "Erase everything"))) return;
+    const keep = state.syncPath;
+    state = migrate({}); state.syncPath = keep;
+    save();
+    showProfiles(false);
+  };
+}
+
+
+function showAddons() {
+  setNav("addons"); view = null;
+  app.innerHTML = `<h2>Add-ons</h2><div id="abody" class="form"></div>`;
+  settingsAddons($("#abody"));
+}
+// =====================================================================
+//  Start
+// =====================================================================
+async function boot() {
+  const intro = $("#intro");
+  let introTimer = setTimeout(() => intro && intro.classList.add("done"), 3000);
+  const skipIntro = () => { if (!intro || intro.classList.contains("done")) return; clearTimeout(introTimer); intro.classList.add("done"); document.removeEventListener("keydown", skipIntro); intro.removeEventListener("click", skipIntro); };
+  document.addEventListener("keydown", skipIntro, { once: true });
+  intro && intro.addEventListener("click", skipIntro, { once: true });
+  document.querySelectorAll("#nav button").forEach((b) => { b.onclick = () => { if (profile) tab(b.dataset.go); }; });
+  $("#chip").onclick = () => showProfiles(false);
+  await loadState();
+  applyTheme();
+  await syncNow(false);
+  applyTheme();
+  if (state.profiles.length === 1 && !state.profiles[0].pin) enterProfile(state.profiles[0]);
+  else showProfiles(false);
+}
+if (typeof window !== "undefined" && !window.__BRADFLIX_TEST__) boot();
+</script>
+</body>
+</html>
