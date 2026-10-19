@@ -325,13 +325,11 @@ fn play(body: &str) -> (String, u16) {
     }
 
     if let Some(list) = data["subs"].as_array() {
-        for sub in list
-            .iter()
-            .filter_map(|v| v.as_str())
-            .filter(|v| is_web_link(v))
-            .take(6)
-        {
-            command.arg(format!("--sub-file={}", sub));
+        for sub in list.iter().take(24) {
+            let url = sub.as_str().or_else(|| sub["url"].as_str()).unwrap_or("");
+            if is_web_link(url) {
+                command.arg(format!("--sub-file={}", url));
+            }
         }
     }
 
@@ -494,11 +492,11 @@ fn main() {
     // behavior silently reused another running build's web page when port
     // 7878 was already occupied, making installs look like they changed nothing.
     let server = Server::http("127.0.0.1:0")
-        .expect("BradFlix could not start its local web server");
+        .expect("BradsHub could not start its local web server");
     let socket_addr = server
         .server_addr()
         .to_ip()
-        .expect("BradFlix local server did not bind to an IP address");
+        .expect("BradsHub local server did not bind to an IP address");
     let address = format!("127.0.0.1:{}", socket_addr.port());
     let request_address = address.clone();
     std::thread::spawn(move || {
@@ -510,7 +508,7 @@ fn main() {
     // Make the window. Closing it quits the app.
     let event_loop = EventLoop::new();
     let window = WindowBuilder::new()
-        .with_title("BradFlix")
+        .with_title("BradsHub")
         .with_inner_size(LogicalSize::new(1360.0, 840.0))
         .with_min_inner_size(LogicalSize::new(640.0, 480.0))
         .build(&event_loop)
