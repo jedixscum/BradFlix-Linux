@@ -47,14 +47,21 @@
   body.locked #side { display: none; }
   body.locked main { margin-left: 0; }
   .brand {
-    font-size: 27px; font-weight: 950; letter-spacing: -0.065em; padding: 0 12px 18px;
-    color: #e50914; text-shadow: 0 2px 18px rgba(229,9,20,.22);
-    font-family: Impact, "Arial Narrow", Arial, Helvetica, sans-serif; transform: scaleX(.96); transform-origin: left center;
-    white-space: nowrap; text-transform: none;
+    display:flex; align-items:center; width:max-content; gap:0; padding:0 12px 18px;
+    color:#fff !important; background:transparent; border-radius:0; letter-spacing:-.055em;
+    font:850 24px/1.1 "Noto Sans","Cantarell",system-ui,sans-serif; text-shadow:none; transform:none;
   }
-  .brand::first-letter { letter-spacing: -.09em; }
+  .brand-main { color:#fff; }
+  .brand-badge, .intro-name b {
+    display:inline-block; margin-left:.12em; padding:.08em .3em .12em; border-radius:.22em;
+    color:#17120a; background:#ff9d00; letter-spacing:-.045em; font-weight:900;
+  }
+  .intro-name span, .brand-intro-mark span { color:#fff; }
+  .brand-intro-mark b { color:#17120a; background:#ff9d00; padding:.08em .3em .12em; border-radius:.22em; }
+  .intro-name { display:flex; align-items:center; gap:.04em; color:#fff; font-family:"Noto Sans","Cantarell",system-ui,sans-serif; font-size:clamp(48px,12vw,148px); font-weight:900; letter-spacing:-.06em; text-shadow:none; transform:none; }
+  .intro-name b { font-size:.72em; line-height:1.05; }
   /* Keep the BradsHub wordmark branded even when a Harbor theme is imported. */
-  #side .brand { color: #e50914 !important; font-weight: 950 !important; }
+  #side .brand { color: #fff !important; font-weight: 850 !important; }
   body[data-layout="rail"] .brand { font-size: 15px; letter-spacing: -.07em; }
   #nav button[data-go="calendar"] { color: var(--muted); }
   .release-day { margin: 20px 0 28px; }
@@ -281,7 +288,7 @@
   .splash { font-size: 44px; font-weight: 900; letter-spacing: -0.04em; margin: 40px 0 0; background: linear-gradient(90deg, var(--text), var(--accent)); -webkit-background-clip: text; background-clip: text; color: transparent; }
   .intro { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; overflow: hidden; background: #050506; transition: opacity .55s ease, visibility .55s ease; }
   .intro.done { opacity: 0; visibility: hidden; pointer-events: none; }
-  .intro::before { content: ""; position: absolute; width: min(70vw, 760px); height: min(70vw, 760px); border-radius: 50%; background: radial-gradient(circle, rgba(229,9,20,.16) 0%, rgba(229,9,20,.08) 38%, transparent 72%); opacity: .8; animation: introGlow 1.5s ease both; }
+  .intro::before { content: ""; position: absolute; width: min(70vw, 760px); height: min(70vw, 760px); border-radius: 50%; background: radial-gradient(circle, rgba(255,157,0,.14) 0%, rgba(255,157,0,.07) 38%, transparent 72%); opacity: .8; animation: introGlow 1.5s ease both; }
   .intro-name { position: relative; color: #e50914; font: 950 clamp(48px, 12vw, 148px)/1 Impact, "Arial Narrow", sans-serif; letter-spacing: -.065em; transform: scaleX(.94); animation: introReveal 1.5s cubic-bezier(.2,.7,.2,1) both; }
   .intro-name::first-letter { letter-spacing: -.09em; }
   .intro-hint { position: absolute; bottom: 7vh; color: #a5a5a5; font-size: 13px; letter-spacing: .16em; text-transform: uppercase; animation: hintFade 1.5s both; }
@@ -352,12 +359,20 @@
   .dialog .stream-groups { max-height:58vh; overflow:auto; overscroll-behavior:contain; }
   .player-actions label { display:inline-flex; align-items:center; gap:6px; color:var(--muted); font-size:14px; }
   .player-actions select { max-width:220px; min-width:120px; padding:7px 10px; }
-.brand { display:flex; align-items:center; width:max-content; gap:0; color:#fff !important; background:#050505; padding:4px 7px; border-radius:4px; letter-spacing:-.055em; }
+  .brand {
+    display:flex; align-items:center; width:max-content; gap:0; padding:0 12px 18px;
+    color:#fff !important; background:transparent; border-radius:0; letter-spacing:-.055em;
+    font:850 24px/1.1 "Noto Sans","Cantarell",system-ui,sans-serif; text-shadow:none; transform:none;
+  }
   .brand-main { color:#fff; }
-  .brand-badge, .intro-name b { color:#111; background:#f90; padding:0 .12em; border-radius:2px; }
+  .brand-badge, .intro-name b {
+    display:inline-block; margin-left:.12em; padding:.08em .3em .12em; border-radius:.22em;
+    color:#17120a; background:#ff9d00; letter-spacing:-.045em; font-weight:900;
+  }
   .intro-name span, .brand-intro-mark span { color:#fff; }
-  .brand-intro-mark b { color:#111; background:#f90; padding:0 .12em; border-radius:2px; }
-  .intro-name { display:flex; align-items:center; gap:.05em; }
+  .brand-intro-mark b { color:#17120a; background:#ff9d00; padding:.08em .3em .12em; border-radius:.22em; }
+  .intro-name { display:flex; align-items:center; gap:.04em; color:#fff; font-family:"Noto Sans","Cantarell",system-ui,sans-serif; font-size:clamp(48px,12vw,148px); font-weight:900; letter-spacing:-.06em; text-shadow:none; transform:none; }
+  .intro-name b { font-size:.72em; line-height:1.05; }
 </style>
 </head>
 <body class="locked" data-layout="sidebar" data-cards="round">
@@ -1096,7 +1111,7 @@ async function showRoom(type) {
 // =====================================================================
 async function showReleaseCalendar() {
   setNav("calendar"); view = null;
-  app.innerHTML = `<h2>TV & show release calendar</h2><p class="muted">Scheduled TV episodes for the selected week, from TVmaze. Times are shown in your browser's local time zone.</p><div class="filters"><button class="btn quiet" id="calprev">← Previous week</button><strong id="caldate"></strong><button class="btn quiet" id="calnext">Next week →</button><button class="btn" id="calrefresh">Refresh</button></div><div id="calbody"><p class="muted">Loading schedule…</p></div>`;
+  app.innerHTML = `<h2>TV & show release calendar</h2><p class="muted">TVmaze episodes from the US, Canada, and Japan only. News and shows without a matching country are filtered out. Times use your local time zone.</p><div class="filters"><button class="btn quiet" id="calprev">← Previous week</button><strong id="caldate"></strong><button class="btn quiet" id="calnext">Next week →</button><button class="btn" id="calrefresh">Refresh</button></div><div id="calbody"><p class="muted">Loading schedule…</p></div>`;
   const weekStart = new Date(); weekStart.setHours(0,0,0,0); weekStart.setDate(weekStart.getDate() - ((weekStart.getDay()+6)%7));
   let offset = 0;
   const load = async () => {
@@ -1109,9 +1124,20 @@ async function showReleaseCalendar() {
     try {
       const dates = Array.from({length:7}, (_,i) => { const d=new Date(startDay); d.setDate(d.getDate()+i); return d; });
       const pages = await Promise.all(dates.map(d => getJSON(`https://api.tvmaze.com/schedule?date=${fmt(d)}`, 12000).catch(() => [])));
-      const groups = dates.map((d,i) => ({date:d, entries:(Array.isArray(pages[i])?pages[i]:[]).filter(x=>x&&x.show&&x.name).sort((a,b)=>String(a.airtime||'').localeCompare(String(b.airtime||'')))}));
+      const allowedCountries = new Set(["US", "CA", "JP"]);
+      const isAllowedRelease = (episode) => {
+        const show = episode && episode.show;
+        if (!show || !episode.name) return false;
+        const genres = Array.isArray(show.genres) ? show.genres.map(g => String(g).trim().toLowerCase()) : [];
+        if (String(show.type || "").toLowerCase().includes("news") || genres.includes("news")) return false;
+        const country = show.network && show.network.country && show.network.country.code ||
+          show.webChannel && show.webChannel.country && show.webChannel.country.code ||
+          show.country && show.country.code || "";
+        return allowedCountries.has(String(country).trim().toUpperCase());
+      };
+      const groups = dates.map((d,i) => ({date:d, entries:(Array.isArray(pages[i])?pages[i]:[]).filter(isAllowedRelease).sort((a,b)=>String(a.airtime||'').localeCompare(String(b.airtime||'')))}));
       const total = groups.reduce((n,g)=>n+g.entries.length,0);
-      if (!total) { $("#calbody").innerHTML = `<p class="muted">No listed TV episodes were found for this week, or the schedule service is unavailable.</p>`; return; }
+      if (!total) { $("#calbody").innerHTML = `<p class="muted">No eligible US, Canadian, or Japanese TV episodes were found for this week, or the schedule service is unavailable.</p>`; return; }
       $("#calbody").innerHTML = groups.filter(g=>g.entries.length).map(g => `<section class="release-day"><h3 class="release-date">${esc(g.date.toLocaleDateString(undefined,{weekday:"long",month:"long",day:"numeric"}))}</h3>${g.entries.map(e => `<div class="release-item">${e.show.image && e.show.image.medium ? `<img src="${esc(e.show.image.medium)}" alt="">` : `<div style="width:64px;height:88px;background:var(--panel);border-radius:var(--radius)"></div>`}<div class="grow"><strong>${esc(e.show.name)}</strong><div>${esc(e.name || "Episode")}</div><div class="small muted">${e.season ? `Season ${e.season}` : ""}${e.number ? ` · Episode ${e.number}` : ""}${e.airtime ? ` · ${esc(e.airtime)}` : ""}${e.show.network && e.show.network.name ? ` · ${esc(e.show.network.name)}` : e.show.webChannel && e.show.webChannel.name ? ` · ${esc(e.show.webChannel.name)}` : ""}</div></div><a href="${esc(e.show.url || "https://www.tvmaze.com")}" target="_blank" rel="noreferrer" class="btn quiet small">Details</a></div>`).join("")}</section>`).join("");
     } catch (e) { $("#calbody").innerHTML = `<p class="muted">Could not load the calendar. Check your internet connection and try again.</p>`; }
   };
