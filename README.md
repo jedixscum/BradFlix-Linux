@@ -1,6 +1,6 @@
 # BradFlix for Linux
 
-BradFlix is an independent Linux desktop app for discovering and playing titles from catalogs and compatible add-ons. It has a native window and uses mpv for video playback. It is not affiliated with, or a replacement for, paid streaming services; catalog and video availability depend on the sources you configure and your access rights.
+BradFlix is an independent Linux desktop app for discovering and playing titles from catalogs and compatible add-ons. It has a native window and plays supported streams inside the app, with mpv available as a fallback. It is not affiliated with, or a replacement for, paid streaming services; catalog and video availability depend on the sources you configure and your access rights.
 
 ## Features
 
@@ -8,7 +8,7 @@ BradFlix is an independent Linux desktop app for discovering and playing titles 
 - A cinematic home screen, custom catalog sections, catalog ordering, and multiple themes
 - Multi-genre discovery, search, anime and movies/shows sections, and a TV release calendar
 - Stremio-compatible metadata, catalog, stream, and subtitle add-ons
-- Built-in mpv playback, stream ranking, custom stream match rules, audio/subtitle preferences, and episode autoplay
+- In-app video playback with optional mpv fallback, stream ranking, custom stream match rules, audio/subtitle preferences, and episode autoplay
 - Local backup and optional file-based sync
 - Linux x86_64 GitHub Actions builds and in-app update checks
 
@@ -16,7 +16,7 @@ BradFlix does not unlock DRM-protected subscription video. Use official services
 
 ## Build and run locally
 
-Install Rust, mpv, curl, sha256sum, and the GTK/WebKit development libraries required by Wry. On Ubuntu 24.04, the native libraries are:
+Install Rust, curl, sha256sum, and the GTK/WebKit development libraries required by Wry. Install mpv if you want the external-player fallback. On Ubuntu 24.04, the native libraries are:
 
     sudo apt-get install build-essential pkg-config libgtk-3-dev libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev mpv curl
 
