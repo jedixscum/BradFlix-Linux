@@ -312,6 +312,12 @@
     position: fixed; bottom: 24px; right: 24px; background: var(--panel-hi); border: 1px solid var(--accent);
     padding: 12px 16px; border-radius: 10px; z-index: 30; display: flex; gap: 14px; align-items: center;
   }
+  .player-overlay { position: fixed; inset: 0; z-index: 1000; display: flex; flex-direction: column; gap: 12px; padding: 18px; background: #000; color: #fff; }
+  .player-top { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+  .player-top strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .player-overlay video { width: 100%; height: 0; min-height: 0; flex: 1; background: #000; object-fit: contain; }
+  .player-message { color: #ddd; text-align: center; }
+  .player-actions { display: flex; justify-content: center; }
   .overlay { position: fixed; inset: 0; background: rgba(5,7,10,.75); display: grid; place-items: center; z-index: 20; padding: 16px; }
   .dialog { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 22px; width: min(500px, 100%); max-height: 90vh; overflow: auto; }
   .dialog h3 { margin: 0 0 14px; font-size: 19px; }
@@ -1827,17 +1833,73 @@ function playUrl(url, title, ctx) { return startPlayer(url, Object.assign({}, ct
 
 async function startPlayer(url, ctx, subs, headers) {
   const s = profile.settings;
-  const body = {
-    url, title: ctx.title, key: ctx.noTrack ? "" : ctx.videoId,
-    start: ctx.noTrack || ctx.fromStart ? 0 : (resumeAt(ctx.videoId) > 0 ? resumeAt(ctx.videoId) : (ctx.type === "series" && s.skipIntro ? Number(s.skipIntroSeconds || 0) : 0)),
-    alang: langList(s.alang), slang: langList(s.slang), subsOff: !!s.subsOff, subs, headers,
+  const startAt = ctx.noTrack || ctx.fromStart ? 0 : (resumeAt(ctx.videoId) > 0 ? resumeAt(ctx.videoId) : (ctx.type === "series" && s.skipIntro ? Number(s.skipIntroSeconds || 0) : 0));
+  const overlay = document.createElement("div");
+  overlay.className = "player-overlay";
+  overlay.setAttribute("role", "dialog");
+  overlay.setAttribute("aria-label", "BradFlix video player");
+  overlay.innerHTML = `<div class="player-top"><strong>${esc(ctx.title || "BradFlix")}</strong><button class="btn quiet small" id="playerclose" aria-label="Close video player">Close</button></div>
+    <video id="bfvideo" controls autoplay playsinline preload="auto"></video>
+    <div class="player-message" id="player-message" role="status"></div>
+    <div class="player-actions"><button class="btn quiet small" id="player-mpv">Try external player</button></div>`;
+  document.body.appendChild(overlay);
+  const video = overlay.querySelector("#bfvideo");
+  const close = () => {
+    if (!overlay.isConnected) return;
+    const pos = video.currentTime || 0, dur = video.duration || 0;
+    if (!ctx.noTrack && dur > 0) { recordProgress(ctx, pos, dur); save(); }
+    video.pause(); video.removeAttribute("src"); video.load(); overlay.remove();
+    document.removeEventListener("keydown", onKey);
+    if (view && view.refresh) view.refresh();
   };
+  const onKey = (e) => { if (e.key === "Escape") close(); };
+  document.addEventListener("keydown", onKey);
+  overlay.querySelector("#playerclose").onclick = close;
+  overlay.querySelector("#player-mpv").onclick = async () => {
+    close();
+    await startExternalPlayer(url, ctx, subs, headers, startAt);
+  };
+  video.src = url;
+  subs.slice(0, 6).forEach((sub, i) => {
+    if (!isWeb(sub)) return;
+    const track = document.createElement("track");
+    track.kind = "subtitles"; track.src = sub; track.srclang = langList(s.slang).split(",")[0] || "en";
+    track.label = `Subtitle ${i + 1}`; track.default = !s.subsOff && i === 0; video.appendChild(track);
+  });
+  video.addEventListener("loadedmetadata", () => {
+    if (startAt >= 5 && Number.isFinite(video.duration) && startAt < video.duration - 5) video.currentTime = startAt;
+  }, { once: true });
+  let lastSave = 0;
+  video.addEventListener("timeupdate", () => {
+    if (ctx.noTrack || !(video.duration > 0)) return;
+    recordProgress(ctx, video.currentTime, video.duration);
+    if (Date.now() - lastSave > 10000) { lastSave = Date.now(); save(); }
+  });
+  video.addEventListener("ended", () => {
+    const pos = video.currentTime || 0, dur = video.duration || 0;
+    if (!ctx.noTrack && dur > 0) { recordProgress(ctx, pos, dur); save(); }
+    close();
+    const next = ctx.episodes ? nextEpisode(ctx.episodes, ctx.videoId) : null;
+    if (next && profile.settings.autoplayNext) countdownNext(ctx, next);
+  });
+  video.addEventListener("error", () => {
+    overlay.querySelector("#player-message").textContent = "This stream could not be played inside BradFlix. Try the external player, or choose another source.";
+  });
+  if (!ctx.noTrack) addHistory(ctx);
+  toast("Playing inside BradFlix");
+  video.play().catch(() => { overlay.querySelector("#player-message").textContent = "Press Play on the video controls to start."; });
+}
+
+async function startExternalPlayer(url, ctx, subs, headers, startAt) {
+  const s = profile.settings;
+  const body = { url, title: ctx.title, key: ctx.noTrack ? "" : ctx.videoId, start: startAt,
+    alang: langList(s.alang), slang: langList(s.slang), subsOff: !!s.subsOff, subs, headers };
   try {
     const res = await fetch("/api/play", { method: "POST", body: JSON.stringify(body) });
     const data = await res.json();
     if (!res.ok) { toast(data.error || "Could not start playback.", true); return; }
     toast("Opening in mpv…");
-    if (!ctx.noTrack) { addHistory(ctx); watching = { playId: data.id, ctx, lastSave: 0, profile }; }
+    if (!ctx.noTrack) watching = { playId: data.id, ctx, lastSave: 0, profile };
   } catch (e) { toast("Could not reach the app. Is it still running?", true); }
 }
 
