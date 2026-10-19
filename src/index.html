@@ -123,12 +123,15 @@
   .cardwrap.wide { flex-basis: 288px; }
   .card.wide, .card.wide .pw { width: 288px; }
   .card.wide .pw { height: 162px; }
-  .cardwrap.top10 { flex-basis: 196px; display: flex; align-items: flex-end; }
+  .cardwrap.top10 { flex-basis: 212px; display: flex; align-items: flex-end; gap: 4px; }
   .cardwrap.top10 .num {
-    font-size: 132px; font-weight: 900; line-height: .78; margin-right: -22px; z-index: 0; letter-spacing: -0.08em;
+    display: block; flex: 0 0 78px; width: 78px; text-align: center;
+    font-size: 128px; font-weight: 900; line-height: .78; margin: 0; z-index: 0; letter-spacing: -0.08em;
     color: var(--bg); -webkit-text-stroke: 3px var(--muted); user-select: none;
   }
+  .cardwrap.top10 .num.double { font-size: 100px; }
   .card.top10, .card.top10 .pw { width: 130px; z-index: 1; }
+  .card.top10 { flex: 0 0 130px; }
   .card.top10 .pw { height: 195px; }
   .bar { position: absolute; left: 0; right: 0; bottom: 0; height: 5px; background: rgba(0,0,0,.65); }
   .bar i { display: block; height: 100%; background: var(--accent); }
@@ -876,7 +879,7 @@ function cardHTML(item, i, removable, variant) {
     : `<div class="poster ph">${esc((item.name || "?").slice(0, 1))}</div>`;
   const bar = item.pct ? `<div class="bar"><i style="width:${Math.round(item.pct * 100)}%"></i></div>` : "";
   const sub = item.sub ? `<div class="sub">${esc(item.sub)}</div>` : "";
-  const num = variant === "top10" ? `<span class="num" aria-hidden="true">${i + 1}</span>` : "";
+  const num = variant === "top10" ? `<span class="num${i >= 9 ? " double" : ""}" aria-hidden="true">${i + 1}</span>` : "";
   const v = variant || "";
   return `<div class="cardwrap ${v}">${num}<button class="card ${v}" data-i="${i}"><div class="pw">${poster}${bar}</div>
     <div class="name">${esc(item.name)}</div>${sub}</button>
