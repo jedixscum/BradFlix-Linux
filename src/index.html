@@ -347,7 +347,7 @@
     <button data-go="shows"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="12" rx="2"/><path d="M8 21h8M12 17v4"/></svg><span class="lbl">Shows</span></button>
     <button data-go="anime"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 4h16v16H4z"/><path d="m9 8 7 4-7 4z"/></svg><span class="lbl">Anime</span></button>
     <button data-go="calendar"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18M8 14h2M14 14h2M8 17h2"/></svg><span class="lbl">Release Calendar</span></button>
-    <button data-go="search"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><span class="lbl">Search</span></button>
+    <button data-go="search" title="Search (Ctrl+K)" aria-keyshortcuts="Control+K Meta+K"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><span class="lbl">Search</span></button>
     <button data-go="library"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12v18l-6-4-6 4z"/></svg><span class="lbl">My Library</span></button>
     <button data-go="addons"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><path d="M16.5 13v7M13 16.5h7"/></svg><span class="lbl">Add-ons</span></button>
     <button data-go="settings"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></svg><span class="lbl">Settings</span></button>
@@ -828,6 +828,25 @@ function back() {
   stack.pop();
   const fn = stack[stack.length - 1];
   if (fn) fn(); else showHome();
+}
+function installKeyboardShortcuts() {
+  document.addEventListener("keydown", (event) => {
+    if (event.defaultPrevented || document.querySelector(".overlay, .player-overlay")) return;
+    const key = event.key.toLowerCase();
+    if ((event.ctrlKey || event.metaKey) && key === "k") {
+      event.preventDefault();
+      if (!profile) return;
+      if (document.activeElement === $("#q")) { $("#q").focus(); $("#q").select(); }
+      else tab("search");
+      return;
+    }
+    const target = event.target;
+    const editing = target && (target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName));
+    if (event.altKey && event.key === "ArrowLeft" && profile && stack.length > 1 && !editing) {
+      event.preventDefault();
+      back();
+    }
+  });
 }
 function tab(name) {
   const pages = {
@@ -1361,7 +1380,7 @@ function searchSources() {
 function showSearch() {
   setNav("search"); view = null;
   app.innerHTML = `<h2>Search</h2>
-    <div class="searchbar"><input id="q" type="search" placeholder="Movie, show, actor or director" autocomplete="off" value="${esc(lastSearch)}">
+    <div class="searchbar"><input id="q" type="search" placeholder="Movie, show, actor or director · Ctrl+K to search" autocomplete="off" value="${esc(lastSearch)}">
     <button class="btn" id="go">Search</button></div><div id="results"></div>`;
   const input = $("#q");
   input.focus();
@@ -2507,6 +2526,7 @@ function showAddons() {
 //  Start
 // =====================================================================
 async function boot() {
+  installKeyboardShortcuts();
   const intro = $("#intro");
   let introTimer = setTimeout(() => intro && intro.classList.add("done"), 3000);
   const skipIntro = () => { if (!intro || intro.classList.contains("done")) return; clearTimeout(introTimer); intro.classList.add("done"); document.removeEventListener("keydown", skipIntro); intro.removeEventListener("click", skipIntro); };
