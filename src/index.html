@@ -56,7 +56,7 @@
   /* Keep the BradFlix wordmark branded even when a Harbor theme is imported. */
   #side .brand { color: #e50914 !important; font-weight: 950 !important; }
   body[data-layout="rail"] .brand { font-size: 15px; letter-spacing: -.07em; }
-  #nav button[data-go="anime"], #nav button[data-go="calendar"] { color: var(--muted); }
+  #nav button[data-go="calendar"] { color: var(--muted); }
   .release-day { margin: 20px 0 28px; }
   .release-date { color: var(--accent); font-weight: 800; border-bottom: 1px solid var(--line); padding-bottom: 8px; margin-bottom: 12px; }
   .release-item { display:flex; gap:14px; align-items:center; padding:12px 0; border-bottom:1px solid var(--line); }
@@ -169,6 +169,15 @@
   /* ---------- buttons, inputs ---------- */
   .filters, .searchbar { display: flex; gap: 10px; margin-bottom: 22px; flex-wrap: wrap; align-items: center; }
   .searchbar { max-width: 680px; }
+  .search-wrap { position:relative; max-width:680px; z-index:4; }
+  .search-suggestions { position:absolute; top:calc(100% - 18px); left:0; right:0; max-height:min(52vh,420px); overflow:auto; padding:6px; border:1px solid var(--line); border-radius:12px; background:var(--panel); box-shadow:0 14px 34px rgba(0,0,0,.42); }
+  .search-suggestions[hidden] { display:none; }
+  .search-suggestions button { width:100%; display:flex; align-items:center; gap:12px; text-align:left; padding:10px 12px; border:0; border-radius:8px; color:var(--text); background:transparent; cursor:pointer; }
+  .search-suggestions button:hover, .search-suggestions button:focus-visible { background:var(--panel-hi); outline:2px solid var(--accent); }
+  .search-suggestions img { width:38px; height:56px; object-fit:cover; border-radius:5px; }
+  .search-suggestions .suggestion-copy { min-width:0; }
+  .search-suggestions .suggestion-title { font-weight:700; }
+  .search-suggestions .suggestion-meta { color:var(--muted); font-size:.9em; }
   input[type=text], input[type=password], input[type=search], textarea {
     flex: 1; min-width: 200px; padding: 11px 16px; border-radius: 10px;
     background: var(--panel); border: 1px solid var(--line);
@@ -348,7 +357,7 @@
     <button data-go="discover"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/></svg><span class="lbl">Discover</span></button>
     <button data-go="movies"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 4v16M17 4v16M3 9h4M3 15h4M17 9h4M17 15h4"/></svg><span class="lbl">Movies</span></button>
     <button data-go="shows"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="12" rx="2"/><path d="M8 21h8M12 17v4"/></svg><span class="lbl">Shows</span></button>
-    <button data-go="anime"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 4h16v16H4z"/><path d="m9 8 7 4-7 4z"/></svg><span class="lbl">Anime</span></button>
+    
     <button data-go="calendar"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18M8 14h2M14 14h2M8 17h2"/></svg><span class="lbl">Release Calendar</span></button>
     <button data-go="search" title="Search (Ctrl+K)" aria-keyshortcuts="Control+K Meta+K"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><span class="lbl">Search</span></button>
     <button data-go="library"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12v18l-6-4-6 4z"/></svg><span class="lbl">My Library</span></button>
@@ -854,7 +863,7 @@ function installKeyboardShortcuts() {
 function tab(name) {
   const pages = {
     home: showHome, discover: showDiscover, movies: () => showRoom("movie"), shows: () => showRoom("series"),
-    anime: showAnime, calendar: showReleaseCalendar, search: () => showSearch(), library: showLists, history: showHistory, addons: showAddons, settings: () => showSettings(),
+    calendar: showReleaseCalendar, search: () => showSearch(), library: showLists, history: showHistory, addons: showAddons, settings: () => showSettings(),
   };
   stack = [pages[name]];
   pages[name]();
@@ -1073,26 +1082,6 @@ async function showRoom(type) {
 // =====================================================================
 //  Anime and TV release calendar
 // =====================================================================
-async function showAnime() {
-  setNav("anime"); view = null;
-  app.innerHTML = `<h2>Anime</h2><p class="muted">Anime catalogs from your installed add-ons, plus the built-in animation catalog.</p>`;
-  const movieCat = builtinCatalogs().find((c) => c.type === "movie");
-  const seriesCat = builtinCatalogs().find((c) => c.type === "series");
-  addRow("Animated movies", { cat: movieCat, genre: "Animation" });
-  addRow("Animated series", { cat: seriesCat, genre: "Animation", lazy: true });
-  const animeCats = visibleCatalogs("discover").filter((c) => {
-    if (!c || !["movie", "series"].includes(c.type) || c.source === "Built-in") return false;
-    return /anime/i.test(`${c.title || ""} ${c.id || ""}`) ||
-      (Array.isArray(c.genres) && c.genres.some((g) => /anime|animation/i.test(String(g))));
-  });
-  const unique = new Set();
-  animeCats.forEach((c) => {
-    if (unique.has(c.key)) return; unique.add(c.key);
-    const genre = Array.isArray(c.genres) ? c.genres.find((g) => /anime/i.test(String(g))) || c.genres.find((g) => /animation/i.test(String(g))) : "";
-    addRow(c.title, { cat: c, genre: genre || "", lazy: true });
-  });
-  if (!animeCats.length) app.insertAdjacentHTML("beforeend", `<p class="note">No anime-specific add-on catalog was detected. The built-in Animation rows are still available. For a dedicated anime catalog, add a Stremio add-on that publishes Anime or Animation catalogs, then reopen this page.</p>`);
-}
 async function showReleaseCalendar() {
   setNav("calendar"); view = null;
   app.innerHTML = `<h2>TV & show release calendar</h2><p class="muted">Scheduled TV episodes for the selected week, from TVmaze. Times are shown in your browser's local time zone.</p><div class="filters"><button class="btn quiet" id="calprev">← Previous week</button><strong id="caldate"></strong><button class="btn quiet" id="calnext">Next week →</button><button class="btn" id="calrefresh">Refresh</button></div><div id="calbody"><p class="muted">Loading schedule…</p></div>`;
@@ -1383,13 +1372,42 @@ function searchSources() {
 function showSearch() {
   setNav("search"); view = null;
   app.innerHTML = `<h2>Search</h2>
-    <div class="searchbar"><input id="q" type="search" placeholder="Movie, show, actor or director · Ctrl+K to search" autocomplete="off" value="${esc(lastSearch)}">
-    <button class="btn" id="go">Search</button></div><div id="results"></div>`;
-  const input = $("#q");
+    <div class="search-wrap"><div class="searchbar"><input id="q" type="search" role="combobox" aria-autocomplete="list" aria-controls="searchSuggestions" aria-expanded="false" placeholder="Movie, show, actor or director · Ctrl+K to search" autocomplete="off" value="${esc(lastSearch)}">
+    <button class="btn" id="go">Search</button></div><div id="searchSuggestions" class="search-suggestions" role="listbox" hidden></div></div>
+    <section class="row" id="recent-movies"><h2>Recently released movies</h2><div class="scroller"><span class="muted">Loading recent releases…</span></div></section>
+    <div id="results"></div>`;
+  const input = $("#q"), suggestions = $("#searchSuggestions");
   input.focus();
+  let suggestionTimer = 0, suggestionRequest = 0;
+  const closeSuggestions = () => { suggestions.hidden = true; input.setAttribute("aria-expanded", "false"); };
+  const chooseSuggestion = (item) => { closeSuggestions(); input.value = item.name; lastSearch = item.name; go(() => showDetail(item.type, item.id, item)); };
+  const updateSuggestions = async () => {
+    const q = input.value.trim(), request = ++suggestionRequest;
+    if (q.length < 2) { closeSuggestions(); return; }
+    const sources = searchSources().slice(0, 8);
+    const responses = await Promise.all(sources.map((src) =>
+      getCached(catalogURL(src.cat, { search: q })).then((d) => (d.metas || []).map((m) => toItem(m, src.cat.type))).catch(() => [])));
+    if (request !== suggestionRequest || input.value.trim() !== q) return;
+    const seen = new Set(), items = [];
+    for (const item of responses.flat()) {
+      const key = item.id || item.name;
+      if (!key || seen.has(key)) continue;
+      seen.add(key); items.push(item);
+      if (items.length >= 7) break;
+    }
+    suggestions.innerHTML = items.map((item, i) => `<button type="button" role="option" aria-selected="false" data-suggestion="${i}">
+      ${item.poster ? `<img src="${esc(item.poster)}" alt="" loading="lazy">` : ""}
+      <span class="suggestion-copy"><span class="suggestion-title">${esc(item.name)}</span><br><span class="suggestion-meta">${esc(item.type === "series" ? "Series" : "Movie")}${item.year ? " · " + esc(item.year) : ""}</span></span></button>`).join("");
+    suggestions.hidden = !items.length;
+    input.setAttribute("aria-expanded", String(items.length > 0));
+    suggestions.querySelectorAll("[data-suggestion]").forEach((button) => {
+      button.onclick = () => chooseSuggestion(items[Number(button.dataset.suggestion)]);
+    });
+  };
   const run = async () => {
     const q = input.value.trim();
     if (!q) return;
+    closeSuggestions(); suggestionRequest++;
     lastSearch = q;
     const box = $("#results");
     box.innerHTML = "";
@@ -1430,8 +1448,42 @@ function showSearch() {
     }
   };
   $("#go").onclick = run;
-  input.onkeydown = (e) => { if (e.key === "Enter") run(); };
+  input.addEventListener("input", () => {
+    clearTimeout(suggestionTimer);
+    suggestionTimer = setTimeout(updateSuggestions, 350);
+  });
+  input.onkeydown = (e) => {
+    if (e.key === "Enter") { e.preventDefault(); run(); }
+    else if (e.key === "ArrowDown" && !suggestions.hidden) {
+      e.preventDefault(); suggestions.querySelector("button")?.focus();
+    } else if (e.key === "Escape") closeSuggestions();
+  };
+  suggestions.onkeydown = (e) => {
+    if (e.key === "Escape") { closeSuggestions(); input.focus(); }
+    if (e.key === "ArrowUp" && e.target === suggestions.querySelector("button")) { e.preventDefault(); input.focus(); }
+  };
   if (lastSearch) run();
+
+  const recentBox = $("#recent-movies .scroller");
+  const recentCatalogs = addonCatalogs(profile.addons).filter((cat) =>
+    cat.type === "movie" && /recent|latest|new release|new movie/i.test(`${cat.title} ${cat.id}`)).slice(0, 3);
+  const movieCatalog = builtinCatalogs().find((cat) => cat.type === "movie");
+  if (!recentCatalogs.length) recentCatalogs.push(movieCatalog);
+  else recentCatalogs.unshift(movieCatalog);
+  Promise.all(recentCatalogs.map((cat) => getCached(catalogURL(cat)).then((d) =>
+    (d.metas || []).map((m) => toItem(m, "movie"))).catch(() => [])))
+    .then((lists) => {
+      const byId = new Map();
+      lists.flat().forEach((item) => { if (item.id && !byId.has(item.id)) byId.set(item.id, item); });
+      const cutoffYear = new Date().getFullYear() - 2;
+      const released = [...byId.values()].map((item) => {
+        const match = String(item.year || "").match(/(19|20)\d{2}/);
+        return { item, year: match ? Number(match[0]) : 0 };
+      }).filter((entry) => entry.year >= cutoffYear)
+        .sort((a, b) => b.year - a.year).slice(0, 20).map((entry) => entry.item);
+      if (released.length) fillCards(recentBox, released);
+      else $("#recent-movies").remove();
+    });
 }
 
 // =====================================================================
@@ -1682,7 +1734,7 @@ async function showDetail(type, id, hint, opts) {
 
   // Similar titles: same genres, best overlap first
   if (genres.length) {
-    $("#similar").innerHTML = `<h3>Similar titles</h3><div class="scroller" id="simrow"><span class="muted">Loading…</span></div>`;
+    $("#similar").innerHTML = `<h3>Similar ${type === 'movie' ? 'movies' : 'series'}</h3><div class="scroller" id="simrow"><span class="muted">Loading…</span></div>`;
     const cat = builtinCatalogs().find((c) => c.type === type);
     Promise.all(genres.slice(0, 3).map((g) =>
       getCached(catalogURL(cat, { genre: g })).then((d) => (d.metas || []).map((m) => toItem(m, type))).catch(() => [])))
