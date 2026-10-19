@@ -1859,15 +1859,21 @@ function runStreams(type, id, onAddon) {
     const check = () => {
       if (remaining > 0 || settled) return;
       const candidates = [];
-      results.forEach((list, i) => (list || []).forEach(stream => { if (isPlayable(stream)) { const score = streamScore(stream, addons[i], i); if (score > -100000) candidates.push({stream, addon:addons[i], score}); } }));
+      results.forEach((list, i) => (list || []).forEach(stream => {
+        if (!isPlayable(stream)) return;
+        const score = streamScore(stream, addons[i], i);
+        if (score > -200000) candidates.push({stream, addon:addons[i], score});
+      }));
       candidates.sort((a,b) => b.score - a.score);
       settled = true;
       resolve(candidates.length ? {stream:candidates[0].stream, addon:candidates[0].addon} : null);
     };
     addons.forEach((addon, i) => {
+      let failure = null;
       getJSON(`${addonBase(addon.url)}/stream/${type}/${enc(id)}.json`)
-        .then((d) => d.streams || []).catch(() => [])
-        .then((list) => { results[i] = list; remaining--; if (onAddon) onAddon(addon, list); check(); });
+        .then((d) => Array.isArray(d.streams) ? d.streams : [])
+        .catch((error) => { failure = error; return []; })
+        .then((list) => { results[i] = list; remaining--; if (onAddon) onAddon(addon, list, failure); check(); });
     });
   });
   return { addons, first };
@@ -1910,10 +1916,10 @@ async function openStreams(ctx, auto, showPopup) {
   const token = ++streamToken;
   const box = $("#streams");
   const setup = (panel, close) => {
-    let records = [], scraping = 0;
+    let records = [], failures = [], scraping = 0;
     panel.innerHTML = `<h3>${esc(ctx.title)}</h3>
-      <p class="muted" id="streamStatus">Finding sources…</p>
-      <div class="btns"><button class="btn quiet small" id="rescrape">Rescrape</button><button class="btn quiet small" id="streamClose">Close</button></div>
+      <p class="muted" id="streamStatus" role="status" aria-live="polite">Finding sources…</p>
+      <div class="btns"><button class="btn quiet small" id="rescrape">Rescrape</button><button class="btn quiet small" id="manageAddons">Manage add-ons</button><button class="btn quiet small" id="streamClose">Close</button></div>
       <div class="stream-groups" id="streamGroups"></div>`;
     panel.querySelector("#streamClose").onclick = () => close(null);
     const render = () => {
@@ -1942,9 +1948,11 @@ async function openStreams(ctx, auto, showPopup) {
       records = [];
       panel.querySelector("#streamGroups").innerHTML = "";
       panel.querySelector("#streamStatus").textContent = "Rescraping add-ons for sources…";
-      const session = runStreams(ctx.type, ctx.videoId, (addon, list) => {
+      failures = [];
+      const session = runStreams(ctx.type, ctx.videoId, (addon, list, error) => {
         if (current !== streamToken || !panel.isConnected) return;
         const addonIndex = session.addons.indexOf(addon);
+        if (error) failures.push(addon.name || addon.url);
         list.forEach((stream) => records.push({stream,addon,addonIndex}));
         render();
       });
@@ -1957,8 +1965,10 @@ async function openStreams(ctx, auto, showPopup) {
       session.first.then((result) => {
         if (current !== streamToken || !panel.isConnected) return;
         const status = panel.querySelector("#streamStatus");
-        if (!records.some((r) => isPlayable(r.stream))) status.textContent = "No playable links found. Try rescraping or check your add-ons.";
-        else status.textContent = `${records.filter((r) => isPlayable(r.stream)).length} links found. Choose a quality category.`;
+        const playableCount = records.filter((r) => isPlayable(r.stream)).length;
+        if (!playableCount && failures.length) status.textContent = `Could not reach ${failures.length} add-on(s). Check their connection or open Manage add-ons, then rescrape.`;
+        else if (!playableCount) status.textContent = "No playable links found. Your add-ons responded, but returned no supported sources. Try rescraping or check add-on details.";
+        else status.textContent = `${playableCount} links found. Choose a quality category.${failures.length ? ` ${failures.length} add-on(s) did not respond.` : ""}`;
         if (auto) {
           const eligible = bestKnownSmall(records);
           if (eligible) {
@@ -1971,6 +1981,7 @@ async function openStreams(ctx, auto, showPopup) {
       });
     };
     panel.querySelector("#rescrape").onclick = scrape;
+    panel.querySelector("#manageAddons").onclick = () => { close(null); showAddons(); };
     scrape();
   };
   if (showPopup || !box) return modal((panel, close) => setup(panel, close));
@@ -2595,43 +2606,78 @@ function settingsPlayback(box) {
 }
 
 function settingsAddons(box) {
-  box.innerHTML = `<div class="note">Add-ons are what find video links. BradsHub does not include any,
-    so it only shows movie and show information until you add some. They stay up to date automatically.
-    Only add add-ons from sources you trust, and that are legal where you live.</div>
-    <div class="searchbar"><input id="url" type="text" placeholder="Paste an add-on link here" autocomplete="off">
+  box.innerHTML = `<div class="note"><b>How add-ons work</b><br>
+    Add-ons provide the video-source links. BradsHub supplies the movie and show catalog, but does not include video sources.
+    Add an add-on only if you trust it and are allowed to use it where you live.
+    <ol><li>Get the add-on's web address from its provider.</li>
+    <li>Paste the address below. You can paste a base address or its manifest address.</li>
+    <li>Choose <b>Add</b>. A valid add-on appears in your list.</li></ol>
+    Some add-ons need a compatible server and may not work on Android TV. The connection check can confirm whether its manifest responds.</div>
+    <div class="searchbar"><input id="url" type="text" placeholder="Paste add-on address" autocomplete="url" aria-label="Add-on web address">
     <button class="btn" id="add">Add</button></div>
+    <p id="addonStatus" class="muted" role="status" aria-live="polite"></p>
     <div class="btns" style="margin-top:0"><button class="btn quiet small" id="updall">Update all now</button></div>
     <div class="list" id="addonlist"></div>`;
   const draw = () => {
     const list = $("#addonlist");
-    if (!profile.addons.length) { list.innerHTML = `<p class="muted">No add-ons yet.</p>`; return; }
+    if (!profile.addons.length) { list.innerHTML = `<p class="muted">No add-ons are installed yet. Add one above to enable source searches.</p>`; return; }
     list.innerHTML = profile.addons.map((a, i) => {
       const m = a.manifest || {};
       return `<div class="item"><div class="grow"><div>${esc(a.name)} ${m.version ? `<span class="tag">v${esc(m.version)}</span>` : ""}</div>
-        <div class="small">${esc(resourceNames(m).join(", "))}${m.description ? "\n" + esc(String(m.description).slice(0, 140)) : ""}${a.checkedAt ? "\nChecked " + esc(fmtDate(a.checkedAt)) : ""}</div></div>
+        <div class="small">${esc(resourceNames(m).join(", "))}${m.description ? "\\n" + esc(String(m.description).slice(0, 140)) : ""}${a.checkedAt ? "\\nChecked " + esc(fmtDate(a.checkedAt)) : ""}</div>
+        <div class="small" data-health="${i}" role="status"></div></div>
+        <button class="btn quiet small" data-check="${i}">Check</button>
         <button class="btn quiet small" data-rm="${i}">Remove</button></div>`;
     }).join("");
     list.querySelectorAll("[data-rm]").forEach((b) => {
       b.onclick = () => { profile.addons.splice(Number(b.dataset.rm), 1); save(); draw(); };
     });
+    list.querySelectorAll("[data-check]").forEach((b) => {
+      b.onclick = async () => {
+        const i = Number(b.dataset.check), addon = profile.addons[i], out = list.querySelector(`[data-health="${i}"]`);
+        if (!addon || !out) return;
+        b.disabled = true; out.textContent = "Checking manifest…";
+        try {
+          const manifest = await getJSON(addon.url, 8000);
+          if (!manifest || !manifest.id || !Array.isArray(manifest.resources)) throw new Error("The server returned an invalid add-on manifest.");
+          addon.manifest = manifest; addon.name = manifest.name || manifest.id; addon.checkedAt = Date.now();
+          save(); draw();
+          const fresh = list.querySelector(`[data-health="${i}"]`);
+          if (fresh) fresh.textContent = "Connection OK.";
+        } catch (e) {
+          out.textContent = addonErrorMessage(e);
+          b.disabled = false;
+        }
+      };
+    });
   };
   $("#add").onclick = async () => {
-    const text = $("#url").value;
-    if (!text.trim()) return;
+    const input = $("#url"), status = $("#addonStatus"), text = input.value.trim();
+    if (!text) { status.textContent = "Paste an add-on address first."; input.focus(); return; }
     const url = normalizeManifestUrl(text);
+    if (!isWeb(url)) { status.textContent = "Enter a complete web address beginning with http:// or https://."; return; }
+    const button = $("#add"); button.disabled = true; status.textContent = "Checking the add-on manifest…";
     try {
-      const manifest = await getJSON(url);
-      if (!manifest || !manifest.id || !manifest.resources) throw new Error("not an add-on");
+      const manifest = await getJSON(url, 10000);
+      if (!manifest || !manifest.id || !Array.isArray(manifest.resources)) throw new Error("The server response is not a valid add-on manifest.");
       profile.addons = profile.addons.filter((a) => addonBase(a.url) !== addonBase(url));
       profile.addons.push({ url, name: manifest.name || manifest.id, manifest, checkedAt: Date.now() });
-      save();
-      $("#url").value = "";
-      toast("Added " + (manifest.name || manifest.id));
+      save(); input.value = ""; status.textContent = "Added " + (manifest.name || manifest.id) + ".";
       draw();
-    } catch (e) { toast("That link did not work as an add-on. Check it and try again.", true); }
+    } catch (e) { status.textContent = addonErrorMessage(e); }
+    finally { button.disabled = false; }
   };
   $("#updall").onclick = async () => { await refreshAddons(false); draw(); };
   draw();
+}
+function addonErrorMessage(error) {
+  const message = String(error && error.message || error || "");
+  if (error && error.name === "AbortError") return "Timed out while contacting the add-on. Check the address and your connection.";
+  if (/HTTP 404/.test(message)) return "No manifest was found at that address. Check that the add-on address is correct.";
+  if (/HTTP 401|HTTP 403/.test(message)) return "The add-on server denied the request. It may require a different address or may not allow app connections.";
+  if (/HTTP 5\d\d/.test(message)) return "The add-on server is having a problem. Try again later.";
+  if (/valid add-on manifest/.test(message)) return message;
+  return "Could not reach that add-on. Check the address, internet connection, and whether its server allows connections from BradsHub.";
 }
 
 function settingsCatalogs(box) {
