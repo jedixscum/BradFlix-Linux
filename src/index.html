@@ -2047,7 +2047,7 @@ async function startPlayer(url, ctx, subs, headers) {
   overlay.innerHTML = `<div class="player-top"><strong>${esc(ctx.title || "BradsHub")}</strong><button class="btn quiet small" id="playerclose" aria-label="Close video player">Close</button></div>
     <video id="bfvideo" controls autoplay playsinline preload="auto"></video>
     <div class="player-message" id="player-message" role="status"></div>
-    <div class="player-actions"><label>Audio <select id="player-audio"><option value="">System default</option></select></label><label>Subtitles <select id="player-subtitles"><option value="-1">Off</option></select></label><button class="btn quiet small" id="player-mpv">Try external player</button></div>`;
+    <div class="player-actions"><label>Audio <select id="player-audio"><option value="">System default</option></select></label><label>Subtitles <select id="player-subtitles"><option value="-1">Off</option></select></label><button class="btn quiet small" id="player-mpv">Try external player</button><button class="btn quiet small" id="player-sources">Choose another source</button></div>`;
   document.body.appendChild(overlay);
   const video = overlay.querySelector("#bfvideo");
   const close = () => {
@@ -2061,6 +2061,7 @@ async function startPlayer(url, ctx, subs, headers) {
   const onKey = (e) => { if (e.key === "Escape") close(); };
   document.addEventListener("keydown", onKey);
   overlay.querySelector("#playerclose").onclick = close;
+  overlay.querySelector("#player-sources").onclick = () => { close(); openStreams(ctx, false, true); };
   overlay.querySelector("#player-mpv").onclick = async () => {
     close();
     await startExternalPlayer(url, ctx, subs, headers, startAt);
@@ -2130,7 +2131,12 @@ async function startPlayer(url, ctx, subs, headers) {
     if (next && ctx.autoEligible && profile.settings.autoplayNext) countdownNext(ctx, next);
   });
   video.addEventListener("error", () => {
-    overlay.querySelector("#player-message").textContent = "This stream could not be played inside BradsHub. Try the external player, or choose another source.";
+    const code = video.error && video.error.code;
+    const reason = code === 2 ? "The stream could not be reached." :
+      code === 3 ? "The video format could not be decoded." :
+      code === 4 ? "This source uses a format the in-app player does not support." :
+      "This stream could not be played inside BradsHub.";
+    overlay.querySelector("#player-message").textContent = reason + " Try another source, or use the external player.";
   });
   if (!ctx.noTrack) addHistory(ctx);
   toast("Playing inside BradsHub");
