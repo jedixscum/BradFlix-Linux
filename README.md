@@ -9,6 +9,7 @@ BradFlix is an independent Linux desktop app for discovering and playing titles 
 - Multi-genre discovery, search, anime and movies/shows sections, and a TV release calendar
 - Stremio-compatible metadata, catalog, stream, and subtitle add-ons
 - In-app video playback with optional mpv fallback, stream ranking, custom stream match rules, audio/subtitle preferences, and episode autoplay
+- Quick search with Ctrl+K and back navigation with Alt+Left
 - Local backup and optional file-based sync
 - Linux x86_64 GitHub Actions builds and in-app update checks
 
