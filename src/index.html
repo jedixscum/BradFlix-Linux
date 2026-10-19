@@ -265,13 +265,14 @@
   .splash { font-size: 44px; font-weight: 900; letter-spacing: -0.04em; margin: 40px 0 0; background: linear-gradient(90deg, var(--text), var(--accent)); -webkit-background-clip: text; background-clip: text; color: transparent; }
   .intro { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; overflow: hidden; background: #050506; transition: opacity .55s ease, visibility .55s ease; }
   .intro.done { opacity: 0; visibility: hidden; pointer-events: none; }
-  .intro::before { content: ""; position: absolute; width: min(70vw, 760px); height: min(70vw, 760px); border-radius: 50%; background: #e50914; filter: blur(100px); opacity: .18; animation: introGlow 2.8s ease both; }
-  .intro-name { position: relative; color: #e50914; font: 950 clamp(48px, 12vw, 148px)/1 Impact, "Arial Narrow", sans-serif; letter-spacing: -.065em; transform: scaleX(.94); text-shadow: 0 6px 38px #e5091455; animation: introReveal 2.65s cubic-bezier(.2,.7,.2,1) both; }
+  .intro::before { content: ""; position: absolute; width: min(70vw, 760px); height: min(70vw, 760px); border-radius: 50%; background: radial-gradient(circle, rgba(229,9,20,.16) 0%, rgba(229,9,20,.08) 38%, transparent 72%); opacity: .8; animation: introGlow 1.5s ease both; }
+  .intro-name { position: relative; color: #e50914; font: 950 clamp(48px, 12vw, 148px)/1 Impact, "Arial Narrow", sans-serif; letter-spacing: -.065em; transform: scaleX(.94); animation: introReveal 1.5s cubic-bezier(.2,.7,.2,1) both; }
   .intro-name::first-letter { letter-spacing: -.09em; }
-  .intro-hint { position: absolute; bottom: 7vh; color: #a5a5a5; font-size: 13px; letter-spacing: .16em; text-transform: uppercase; animation: hintFade 2.8s both; }
-  @keyframes introReveal { 0% { opacity: 0; transform: scaleX(.94) scale(.82); filter: blur(18px); letter-spacing: .18em; } 38% { opacity: 1; filter: blur(0); } 70% { transform: scaleX(.94) scale(1.04); letter-spacing: -.065em; } 100% { transform: scaleX(.94) scale(1); } }
-  @keyframes introGlow { 0% { transform: scale(.35); opacity: 0; } 40% { opacity: .28; } 100% { transform: scale(1.2); opacity: 0; } }
-  @keyframes hintFade { 0%, 72% { opacity: 0; } 100% { opacity: .8; } }
+  .intro-hint { position: absolute; bottom: 7vh; color: #a5a5a5; font-size: 13px; letter-spacing: .16em; text-transform: uppercase; animation: hintFade 1.5s both; }
+  @keyframes introReveal { 0% { opacity: 0; transform: scaleX(.94) scale(.88); } 70% { opacity: 1; transform: scaleX(.94) scale(1.025); } 100% { opacity: 1; transform: scaleX(.94) scale(1); } }
+  @keyframes introGlow { 0% { transform: scale(.92); opacity: .35; } 100% { transform: scale(1.08); opacity: .8; } }
+  @keyframes hintFade { 0%, 65% { opacity: 0; } 100% { opacity: .8; } }
+  @media (prefers-reduced-motion: reduce) { .intro, .intro::before, .intro-name, .intro-hint { animation: none !important; transition: none !important; } }
   .catalog-group { margin: 12px 0 26px; padding: 18px 18px 2px; border: 1px solid var(--line); border-radius: var(--radius); background: linear-gradient(135deg, color-mix(in srgb, var(--panel) 92%, var(--accent) 8%), var(--panel)); }
   .catalog-group > h2 { display: flex; justify-content: space-between; align-items: center; }
   .group-count { color: var(--muted); font-size: 12px; font-weight: 600; }
