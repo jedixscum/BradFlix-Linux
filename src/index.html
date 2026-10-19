@@ -240,6 +240,10 @@
   .epbar { height: 4px; border-radius: 2px; background: var(--line); margin-top: 6px; overflow: hidden; }
   .epbar i { display: block; height: 100%; background: var(--accent); }
   .group { margin: 14px 0 4px; font-weight: 700; color: var(--muted); font-size: 14px; }
+  .season-head { display: flex; align-items: center; justify-content: space-between; gap: 18px; flex-wrap: wrap; margin: 24px 0 10px; max-width: 900px; }
+  .season-head h3 { margin: 0; }
+  .season-picker { display: flex; align-items: center; gap: 10px; color: var(--muted); font-weight: 700; }
+  .season-picker select { min-width: 190px; min-height: 44px; }
 
   .tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 22px; }
   .tabs button { background: var(--panel); border: 0; padding: 8px 16px; border-radius: 999px; font-weight: 600; color: var(--muted); }
@@ -1600,9 +1604,9 @@ async function showDetail(type, id, hint, opts) {
       const t = target();
       season = t.ctx.season != null ? t.ctx.season : (seasons.find((s) => s > 0) ?? seasons[0]);
     }
-    $("#episodes").innerHTML = `<h3>Episodes</h3>
-      <label>Season <select id="season">${seasons.map((s) =>
-        `<option value="${s}" ${s === season ? "selected" : ""}>${s === 0 ? "Specials" : s}</option>`).join("")}</select></label>
+    $("#episodes").innerHTML = `<div class="season-head"><h3>Episodes</h3>
+      <label class="season-picker" for="season">Choose season <select id="season">${seasons.map((s) =>
+        `<option value="${s}" ${s === season ? "selected" : ""}>${s === 0 ? "Specials" : `Season ${s}`}</option>`).join("")}</select></label></div>
       <div class="list" id="eplist"></div>`;
     $("#season").onchange = (e) => { season = Number(e.target.value); drawEpisodes(); };
     const eps = episodes.filter((e) => e.season === season);
