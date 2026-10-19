@@ -1880,7 +1880,6 @@ function bestKnownSmall(records) {
     return size != null && size <= MAX_AUTOPLAY_BYTES && isPlayable(r.stream);
   }).sort((a,b) => streamScore(b.stream,b.addon,b.addonIndex)-streamScore(a.stream,a.addon,a.addonIndex))[0] || null;
 }
-let streamToken = 0;
 async function openStreams(ctx, auto, showPopup) {
   const token = ++streamToken;
   const box = $("#streams");
